@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# 启用自动扩展 overlay 服务
+/etc/init.d/auto-expand-overlay enable
+
+# 立即执行一次检查
+/usr/bin/auto-expand-overlay &
+
+exit 0
