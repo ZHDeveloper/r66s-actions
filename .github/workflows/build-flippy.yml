@@ -131,6 +131,8 @@ jobs:
         [ -e ${{ matrix.config_file }} ] && mv ${{ matrix.config_file }} openwrt/.config
         chmod +x scripts/download-custom-packages.sh scripts/download-cores.sh $DIY_SH
         cd openwrt
+        export RELEASE_TAG="ARMv8-${{ matrix.name }}"
+        export CONFIG_FILE="${{ matrix.config_file }}"
         $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/$DIY_SH
@@ -201,7 +203,8 @@ jobs:
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && env.PACKAGED_STATUS == 'success'
       run: |
-        echo "release_tag=${{ matrix.name }}_N1_R66S_Flippy_$(date +"%Y.%m.%d_%H%M")" >> $GITHUB_OUTPUT
+        RELEASE_TAG="ARMv8-${{ matrix.name }}"
+        echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
         touch release.txt
         echo "📦 ${{ matrix.name }} N1 & R66S Flippy 固件" >> release.txt
         echo "🕐 编译时间: $(date '+%Y-%m-%d %H:%M:%S')" >> release.txt

@@ -133,6 +133,7 @@ jobs:
         find openwrt/files -name "auto-expand-overlay" -type f -exec chmod +x {} \;
         chmod +x scripts/download-custom-packages.sh scripts/download-cores.sh $DIY_SH
         cd openwrt
+        export CONFIG_FILE="${{ matrix.config_file }}"
         $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/$DIY_SH

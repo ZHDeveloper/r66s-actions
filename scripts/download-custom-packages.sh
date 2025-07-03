@@ -53,4 +53,12 @@ else
     clone_package "https://github.com/sirpdboy/luci-app-adguardhome" "package/luci-app-adguardhome"
 fi
 
+# 晶晨宝盒 (仅用于 Flippy 固件)
+if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
+    clone_package "https://github.com/ophub/luci-app-amlogic" "package/luci-app-amlogic"
+    destination_dir="package/luci-app-amlogic"
+    sed -i "s|firmware_repo.*|firmware_repo 'https://github.com/$GITHUB_REPOSITORY'|g" $destination_dir/root/etc/config/amlogic
+    sed -i "s|ARMv8|$RELEASE_TAG|g" $destination_dir/root/etc/config/amlogic
+fi
+
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
