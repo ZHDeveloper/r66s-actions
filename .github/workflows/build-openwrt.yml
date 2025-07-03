@@ -34,7 +34,6 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -149,6 +148,7 @@ jobs:
 
     - name: Download package
       id: package
+      continue-on-error: true
       run: |
         cd openwrt
         make defconfig
@@ -158,15 +158,21 @@ jobs:
 
     - name: Compile the firmware
       id: compile
+      continue-on-error: true
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
         export PATH="/usr/lib/ccache:$PATH"
         export CCACHE_DIR=~/.ccache
-        make -j$(nproc) || make -j1 || make -j1 V=s
-        echo "status=success" >> $GITHUB_OUTPUT
-        echo "DEVICE_NAME=${{ matrix.device_name }}" >> $GITHUB_ENV
-        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+        if make -j$(nproc) || make -j1 || make -j1 V=s; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "DEVICE_NAME=${{ matrix.device_name }}" >> $GITHUB_ENV
+          echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+          echo "✅ ${{ matrix.name }} compilation successful"
+        else
+          echo "status=failed" >> $GITHUB_OUTPUT
+          echo "❌ ${{ matrix.name }} compilation failed"
+        fi
         ccache -s
 
     - name: Check space usage
@@ -182,6 +188,7 @@ jobs:
 
     - name: Organize files
       id: organize
+      continue-on-error: true
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_FIRMWARE == 'true'
       run: |
         cd openwrt/bin/targets/*/*
@@ -232,3 +239,15 @@ jobs:
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Workflow Summary
+      if: always()
+      run: |
+        echo "## 🚀 Build Summary for ${{ matrix.name }}" >> $GITHUB_STEP_SUMMARY
+        if [ "${{ steps.compile.outputs.status }}" = "success" ]; then
+          echo "✅ **${{ matrix.name }}** compilation: **SUCCESS**" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ **${{ matrix.name }}** compilation: **FAILED**" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "📅 Build time: $(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+        echo "🌿 Source branch: ${{ matrix.repo_branch }}" >> $GITHUB_STEP_SUMMARY
