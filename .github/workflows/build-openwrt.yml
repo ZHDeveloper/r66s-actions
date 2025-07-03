@@ -49,7 +49,7 @@ jobs:
             repo_url: https://github.com/immortalwrt/immortalwrt
             repo_branch: ${{ github.event.inputs.branch || 'openwrt-24.10' }}
             config_file: configs/r66s-imm.config
-            device_name: _R66S
+            device_name: _R66S_ImmortalWrt
             cache_key: openwrt
           - name: LEDE
             repo_url: https://github.com/coolsnowwolf/lede
