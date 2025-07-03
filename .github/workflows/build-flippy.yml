@@ -33,7 +33,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    continue-on-error: true
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: ImmortalWrt
@@ -177,6 +179,7 @@ jobs:
         path: openwrt/bin
 
     - name: Package Armvirt as OpenWrt
+      if: steps.compile.outputs.status == 'success'
       uses: unifreq/openwrt_packit@master
       env:
         OPENWRT_ARMVIRT: openwrt/bin/targets/*/*/*.tar.gz
@@ -215,14 +218,15 @@ jobs:
         files: ${{ env.PACKAGED_OUTPUTPATH }}/*
 
     - name: Delete workflow runs
+      if: always()
       uses: GitRML/delete-workflow-runs@main
       with:
         retain_days: 1
         keep_minimum_runs: 3
 
     - name: Remove old Releases
+      if: always() && env.UPLOAD_RELEASE == 'true'
       uses: dev-drprasad/delete-older-releases@v0.3.2
-      if: env.UPLOAD_RELEASE == 'true'
       with:
         keep_latest: 3
         delete_tags: true
