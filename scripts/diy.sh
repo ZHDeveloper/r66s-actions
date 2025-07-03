@@ -51,9 +51,9 @@ echo "uci set system.@system[0].zonename='Asia/Shanghai'" >> package/base-files/
 echo "uci commit system" >> package/base-files/files/bin/config_generate
 
 # 设置自动扩展 overlay 脚本权限
-chmod +x files/usr/bin/auto-expand-overlay
-chmod +x files/etc/init.d/auto-expand-overlay
-chmod +x files/etc/uci-defaults/99-auto-expand-overlay
+[ -f "files/usr/bin/auto-expand-overlay" ] && chmod +x files/usr/bin/auto-expand-overlay
+[ -f "files/etc/init.d/auto-expand-overlay" ] && chmod +x files/etc/init.d/auto-expand-overlay
+[ -f "files/etc/uci-defaults/99-auto-expand-overlay" ] && chmod +x files/etc/uci-defaults/99-auto-expand-overlay
 
 chmod +x "$GITHUB_WORKSPACE/scripts/download-custom-packages.sh"
 "$GITHUB_WORKSPACE/scripts/download-custom-packages.sh"
