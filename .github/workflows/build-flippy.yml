@@ -3,6 +3,7 @@ name: Build Flippy Firmware for ARMv8
 on:
   repository_dispatch:
   workflow_dispatch:
+    inputs:
       upload_release:
         description: 'Upload to release'
         required: false
