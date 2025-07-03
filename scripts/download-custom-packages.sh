@@ -44,6 +44,7 @@ clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-
 clone_package "https://github.com/sbwml/luci-app-mosdns" "package/luci-app-mosdns" "v5"
 clone_package "https://github.com/Leo-Jo-My/luci-theme-opentomcat" "package/luci-theme-opentomcat"
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
+clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-app-netspeedtest"
 
 if [ "$firmware_type" = "lede" ]; then
     clone_package "https://github.com/jerrykuku/luci-theme-argon" "package/luci-theme-argon" "18.06"
@@ -54,4 +55,3 @@ else
 fi
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
-git_sparse_clone main https://github.com/ophub/luci-app-amlogic luci-app-amlogic
