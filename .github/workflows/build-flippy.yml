@@ -3,15 +3,6 @@ name: Build Flippy Firmware for ARMv8
 on:
   repository_dispatch:
   workflow_dispatch:
-    inputs:
-      branch:
-        description: 'ImmortalWrt branch'
-        required: true
-        default: 'openwrt-24.10'
-        type: choice
-        options:
-        - openwrt-24.10
-        - master
       upload_release:
         description: 'Upload to release'
         required: false
@@ -47,7 +38,7 @@ jobs:
         include:
           - name: ImmortalWrt
             repo_url: https://github.com/immortalwrt/immortalwrt
-            repo_branch: ${{ github.event.inputs.branch || 'openwrt-24.10' }}
+            repo_branch: openwrt-24.10
             config_file: configs/r66s-imm-flippy.config
             device_name: _ImmortalWrt_Flippy
             cache_key: flippy-imm
