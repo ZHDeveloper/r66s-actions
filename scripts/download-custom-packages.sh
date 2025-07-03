@@ -32,7 +32,12 @@ mkdir -p package
 # Clone common packages
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
-clone_package "https://github.com/sbwml/luci-app-mosdns" "package/luci-app-mosdns" "v5"
+
+# Skip mosdns for flippy builds
+if [[ "$CONFIG_FILE" != *"flippy"* ]]; then
+    clone_package "https://github.com/sbwml/luci-app-mosdns" "package/luci-app-mosdns" "v5"
+fi
+
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-app-netspeedtest"
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
