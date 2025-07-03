@@ -112,6 +112,7 @@ jobs:
         cd openwrt
         export RELEASE_TAG="ARMv8-${{ matrix.name }}"
         export CONFIG_FILE="${{ matrix.config_file }}"
+        export GITHUB_REPOSITORY="${{ github.repository }}"
         $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
