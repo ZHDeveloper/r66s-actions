@@ -42,7 +42,6 @@ clone_package() {
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
 clone_package "https://github.com/sbwml/luci-app-mosdns" "package/luci-app-mosdns" "v5"
-clone_package "https://github.com/Leo-Jo-My/luci-theme-opentomcat" "package/luci-theme-opentomcat"
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-app-netspeedtest"
 
