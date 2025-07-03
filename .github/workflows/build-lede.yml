@@ -155,7 +155,7 @@ jobs:
         ccache -s
 
     - name: Check space usage
-      if: (!cancelled())
+      if: always()
       run: df -hT
 
     - name: Upload bin directory
@@ -167,7 +167,7 @@ jobs:
 
     - name: Organize files
       id: organize
-      if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+      if: env.UPLOAD_FIRMWARE == 'true'
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
@@ -176,14 +176,14 @@ jobs:
 
     - name: Upload firmware directory
       uses: actions/upload-artifact@v4
-      if: steps.organize.outputs.status == 'success' && !cancelled() && (github.event.inputs.upload_artifacts == 'true' || github.event.inputs.upload_artifacts != 'false')
+      if: steps.organize.outputs.status == 'success' && (github.event.inputs.upload_artifacts == 'true' || github.event.inputs.upload_artifacts != 'false')
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
         path: ${{ env.FIRMWARE }}
 
     - name: Generate release tag
       id: tag
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: env.UPLOAD_RELEASE == 'true'
       run: |
         echo "release_tag=LEDE_R66S_$(date +"%Y.%m.%d_%H%M")" >> $GITHUB_OUTPUT
         touch release.txt
@@ -194,7 +194,7 @@ jobs:
 
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
-      if: steps.tag.outputs.status == 'success' && !cancelled()
+      if: steps.tag.outputs.status == 'success'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -210,7 +210,7 @@ jobs:
 
     - name: Remove old Releases
       uses: dev-drprasad/delete-older-releases@v0.3.2
-      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      if: env.UPLOAD_RELEASE == 'true'
       with:
         keep_latest: 3
         delete_tags: true
