@@ -55,10 +55,14 @@ fi
 
 # 晶晨宝盒 (仅用于 Flippy 固件)
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
-    clone_package "https://github.com/ophub/luci-app-amlogic" "package/luci-app-amlogic"
+    # Use sparse-checkout to clone only the luci-app-amlogic subdirectory
+    git_sparse_clone master https://github.com/ophub/luci-app-amlogic luci-app-amlogic
+
+    # Configure the amlogic package
     destination_dir="package/luci-app-amlogic"
-    sed -i "s|firmware_repo.*|firmware_repo 'https://github.com/$GITHUB_REPOSITORY'|g" $destination_dir/root/etc/config/amlogic
-    sed -i "s|ARMv8|$RELEASE_TAG|g" $destination_dir/root/etc/config/amlogic
+    sed -i.bak "s|option amlogic_firmware_repo.*|option amlogic_firmware_repo 'https://github.com/$GITHUB_REPOSITORY'|g" $destination_dir/root/etc/config/amlogic
+    sed -i.bak "s|option amlogic_firmware_tag.*|option amlogic_firmware_tag '$RELEASE_TAG'|g" $destination_dir/root/etc/config/amlogic
+    rm -f $destination_dir/root/etc/config/amlogic.bak
 fi
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
