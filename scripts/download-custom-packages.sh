@@ -56,7 +56,7 @@ fi
 # 晶晨宝盒 (仅用于 Flippy 固件)
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
     # Use sparse-checkout to clone only the luci-app-amlogic subdirectory
-    git_sparse_clone master https://github.com/ophub/luci-app-amlogic luci-app-amlogic
+    git_sparse_clone main https://github.com/ophub/luci-app-amlogic luci-app-amlogic
 
     # Configure the amlogic package
     destination_dir="package/luci-app-amlogic"
