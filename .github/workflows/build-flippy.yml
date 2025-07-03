@@ -1,0 +1,236 @@
+name: Build Flippy Firmware for N1 & R66S
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'ImmortalWrt branch'
+        required: true
+        default: 'openwrt-24.10'
+        type: choice
+        options:
+        - openwrt-24.10
+        - master
+      upload_release:
+        description: 'Upload to release'
+        required: false
+        default: true
+        type: boolean
+      upload_artifacts:
+        description: 'Upload artifacts'
+        required: false
+        default: false
+        type: boolean
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: 0 8 * * 0
+  # 每周日早上8点自动编译
+
+env:
+  FEEDS_CONF: feeds.conf.default
+  DIY_SH: scripts/diy.sh
+  UPLOAD_BIN_DIR: false
+  UPLOAD_FIRMWARE: true
+  UPLOAD_RELEASE: ${{ github.event.inputs.upload_release || true }}
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        include:
+          - name: ImmortalWrt
+            repo_url: https://github.com/immortalwrt/immortalwrt
+            repo_branch: ${{ github.event.inputs.branch || 'openwrt-24.10' }}
+            config_file: configs/r66s-imm-flippy.config
+            device_name: _N1_R66S_Flippy
+            cache_key: flippy-imm
+          - name: LEDE
+            repo_url: https://github.com/coolsnowwolf/lede
+            repo_branch: master
+            config_file: configs/r66s-lede-flippy.config
+            device_name: _N1_R66S_LEDE_Flippy
+            cache_key: flippy-lede
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        docker rmi $(docker images -q)
+        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+        bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
+        git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
+        libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
+        mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
+        libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip \
+        vim wget xmlto xxd zlib1g-dev python3-setuptools
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+        sudo timedatectl set-timezone "$TZ"
+        sudo mkdir -p /workdir
+        sudo chown $USER:$GROUPS /workdir
+
+    - name: Combine Disks
+      run: |
+        MNT_SIZE=$((($(df --block-size=1024 --output=avail /mnt | tail -1) - 1024*1024*1) * 1024))
+        sudo fallocate -l $MNT_SIZE /mnt/mnt.img
+        MNT_NAME=$(sudo losetup -Pf --show /mnt/mnt.img)
+        sudo pvcreate -f $MNT_NAME
+        ROOT_SIZE=$((($(df --block-size=1024 --output=avail / | tail -1) - 1024*1024*4) * 1024))
+        sudo fallocate -l $ROOT_SIZE /root.img
+        ROOT_NAME=$(sudo losetup -Pf --show /root.img)
+        sudo pvcreate -f $ROOT_NAME
+        sudo vgcreate actions $MNT_NAME $ROOT_NAME
+        sudo lvcreate -n disk -l 100%FREE actions
+        LV_NAME=$(sudo lvscan | awk -F "'" '{print $2}')
+        sudo mkfs.btrfs -L combinedisk $LV_NAME
+        sudo mkdir -p /workdir
+        sudo mount -o compress=zstd $LV_NAME /workdir
+        sudo chown -R runner:runner /workdir && df -hT
+
+    - name: Clone source code
+      working-directory: /workdir
+      run: |
+        df -hT $PWD
+        git clone ${{ matrix.repo_url }} -b ${{ matrix.repo_branch }} openwrt
+        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+
+    - name: Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.ccache
+          openwrt/.ccache
+          openwrt/staging_dir
+          openwrt/build_dir
+        key: ${{ runner.os }}-${{ matrix.cache_key }}-${{ matrix.repo_branch }}-${{ hashFiles(matrix.config_file) }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.cache_key }}-${{ matrix.repo_branch }}-
+          ${{ runner.os }}-${{ matrix.cache_key }}-
+
+    - name: Update feeds
+      run: cd openwrt && ./scripts/feeds update -a
+
+    - name: Install feeds
+      run: cd openwrt && ./scripts/feeds install -a
+
+    - name: Load custom configuration
+      run: |
+        [ -e ${{ matrix.config_file }} ] && mv ${{ matrix.config_file }} openwrt/.config
+        chmod +x scripts/download-custom-packages.sh scripts/download-cores.sh $DIY_SH
+        cd openwrt
+        $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
+        $GITHUB_WORKSPACE/scripts/download-cores.sh
+        $GITHUB_WORKSPACE/$DIY_SH
+
+    - name: SSH connection to Actions
+      uses: P3TERX/ssh2actions@v1.0.0
+      if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
+      env:
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+
+    - name: Setup ccache
+      run: |
+        echo 'CONFIG_CCACHE=y' >> openwrt/.config
+        export PATH="/usr/lib/ccache:$PATH"
+        export CCACHE_DIR=~/.ccache
+        ccache -M 2G
+        ccache -s
+
+    - name: Download package
+      id: package
+      run: |
+        cd openwrt
+        make defconfig
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+
+    - name: Compile the firmware
+      id: compile
+      run: |
+        cd openwrt
+        echo -e "$(nproc) thread compile"
+        export PATH="/usr/lib/ccache:$PATH"
+        export CCACHE_DIR=~/.ccache
+        make -j$(nproc) || make -j1 || make -j1 V=s
+        echo "status=success" >> $GITHUB_OUTPUT
+        echo "DEVICE_NAME=${{ matrix.device_name }}" >> $GITHUB_ENV
+        echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
+        ccache -s
+
+    - name: Check space usage
+      if: always()
+      run: df -hT
+
+    - name: Upload bin directory
+      uses: actions/upload-artifact@v4
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
+      with:
+        name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        path: openwrt/bin
+
+    - name: Package Armvirt as OpenWrt
+      uses: unifreq/openwrt_packit@master
+      env:
+        OPENWRT_ARMVIRT: openwrt/bin/targets/*/*/*.tar.gz
+        PACKAGE_SOC: s905d_r66s
+        KERNEL_VERSION_NAME: 6.1.y_6.12.y
+
+    - name: Upload firmware directory
+      uses: actions/upload-artifact@v4
+      if: env.PACKAGED_STATUS == 'success' && (github.event.inputs.upload_artifacts == 'true' || github.event.inputs.upload_artifacts != 'false')
+      with:
+        name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+        path: ${{ env.PACKAGED_OUTPUTPATH }}
+
+    - name: Generate release tag
+      id: tag
+      if: env.UPLOAD_RELEASE == 'true' && env.PACKAGED_STATUS == 'success'
+      run: |
+        echo "release_tag=${{ matrix.name }}_N1_R66S_Flippy_$(date +"%Y.%m.%d_%H%M")" >> $GITHUB_OUTPUT
+        touch release.txt
+        echo "📦 ${{ matrix.name }} N1 & R66S Flippy 固件" >> release.txt
+        echo "🕐 编译时间: $(date '+%Y-%m-%d %H:%M:%S')" >> release.txt
+        echo "🌿 源码分支: ${{ matrix.repo_branch }}" >> release.txt
+        echo "📦 打包日期: ${{ env.PACKAGED_OUTPUTDATE }}" >> release.txt
+        echo "🎯 支持设备: Phicomm N1 (S905D) & FastRhino R66S (RK3568)" >> release.txt
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v2
+      if: steps.tag.outputs.status == 'success'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
+        files: ${{ env.PACKAGED_OUTPUTPATH }}/*
+
+    - name: Delete workflow runs
+      uses: GitRML/delete-workflow-runs@main
+      with:
+        retain_days: 1
+        keep_minimum_runs: 3
+
+    - name: Remove old Releases
+      uses: dev-drprasad/delete-older-releases@v0.3.2
+      if: env.UPLOAD_RELEASE == 'true'
+      with:
+        keep_latest: 3
+        delete_tags: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
