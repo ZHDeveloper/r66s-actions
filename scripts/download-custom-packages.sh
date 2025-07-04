@@ -50,13 +50,23 @@ clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-app-netspeedtest"
 
+
 # ImmortalWrt specific packages
 if [[ "$CONFIG_FILE" == *"imm"* ]]; then
+    # Remove existing mosdns and v2ray-geodata packages (sbwml/luci-app-mosdns requirements)
+    find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
+    find ./ | grep Makefile | grep mosdns | xargs rm -f
     rm -rf feeds/packages/net/mosdns
     rm -rf feeds/luci/applications/luci-app-mosdns
+    rm -rf feeds/packages/net/v2ray-geodata
+
+    # Clone sbwml/luci-app-mosdns v5 and v2ray-geodata
+    clone_package "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
+    clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
+
+    # Clone adguardhome from coolsnowwolf/luci
     clone_folders "https://github.com/coolsnowwolf/luci" "openwrt-23.05" \
-        "applications/luci-app-adguardhome" \
-        "applications/luci-app-mosdns"
+        "applications/luci-app-adguardhome"
 fi
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
