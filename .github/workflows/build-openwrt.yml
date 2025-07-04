@@ -3,6 +3,8 @@ name: Build OpenWrt for R66S
 on:
   repository_dispatch:
   workflow_dispatch:
+  watch:
+    types: [started]
     inputs:
       upload_release:
         description: 'Upload to release'
