@@ -1,10 +1,6 @@
 #!/bin/bash
 set -e
 
-# Detect firmware type
-firmware_type="immortalwrt"
-[[ "$CONFIG_FILE" == *"lede"* ]] && firmware_type="lede"
-
 # Sparse clone function
 git_sparse_clone() {
     local branch="$1" repourl="$2"
