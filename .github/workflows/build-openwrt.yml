@@ -157,18 +157,27 @@ jobs:
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
+    - name: Generate release tag
+      id: tag
+      if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true'
+      run: |
+        RELEASE_TAG="${{ matrix.name }}_R66S"
+        echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
+        touch release.txt
+        echo "📦 ${{ matrix.name }} R66S 固件" >> release.txt
+        echo "🕐 编译时间: $(date '+%Y-%m-%d %H:%M:%S')" >> release.txt
+        echo "🌿 源码分支: ${{ matrix.repo_branch }}" >> release.txt
+        echo "🎯 支持设备: FastRhino R66S (RK3568)" >> release.txt
+        echo "status=success" >> $GITHUB_OUTPUT
+
     - name: Upload firmware to release
       uses: softprops/action-gh-release@v2
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true'
+      if: steps.tag.outputs.status == 'success'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ matrix.name }}_R66S
-        name: ${{ matrix.name }} R66S 固件
-        body: |
-          📦 ${{ matrix.name }} R66S 固件
-          🕐 编译时间: $(date '+%Y-%m-%d %H:%M:%S')
-          🌿 源码分支: ${{ matrix.repo_branch }}
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
     - name: Cleanup
