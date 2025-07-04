@@ -128,7 +128,6 @@ jobs:
 
     - name: Download package
       id: package
-      continue-on-error: true
       run: |
         cd openwrt
         make defconfig
@@ -138,19 +137,13 @@ jobs:
 
     - name: Compile the firmware
       id: compile
-      continue-on-error: true
       run: |
         cd openwrt
         echo "$(nproc) thread compile"
         export PATH="/usr/lib/ccache:$PATH"
         export CCACHE_DIR=~/.ccache
-        if make -j$(nproc) || make -j1 || make -j1 V=s; then
-          echo "status=success" >> $GITHUB_OUTPUT
-          echo "✅ ${{ matrix.name }} compilation successful"
-        else
-          echo "status=failed" >> $GITHUB_OUTPUT
-          echo "❌ ${{ matrix.name }} compilation failed"
-        fi
+        make -j$(nproc) || make -j1 || make -j1 V=s
+        echo "status=success" >> $GITHUB_OUTPUT
         ccache -s
 
     - name: Organize files
