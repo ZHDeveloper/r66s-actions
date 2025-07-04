@@ -21,6 +21,19 @@ clone_package() {
     [ -n "$branch" ] && git clone --depth=1 -b "$branch" "$url" "$target" || git clone --depth=1 "$url" "$target"
 }
 
+# Clone specific folder from git repository
+clone_folder() {
+    local url="$1" source_folder="$2" target_folder="$3" branch="${4:-master}"
+    local temp_dir=$(basename "$url")-temp
+
+    git clone --depth=1 -b "$branch" --single-branch --filter=blob:none --sparse "$url" "$temp_dir" && \
+    cd "$temp_dir" && \
+    git sparse-checkout init --cone && \
+    git sparse-checkout set "$source_folder" && \
+    mv "$source_folder" "../$target_folder" && \
+    cd .. && rm -rf "$temp_dir"
+}
+
 # Clean conflicts and prepare
 rm -rf feeds/packages/net/mosdns feeds/luci/themes/luci-theme-argon feeds/luci/applications/luci-app-mosdns
 # rm -rf feeds/packages/lang/golang
@@ -34,7 +47,7 @@ clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-
 clone_package "https://github.com/sbwml/luci-app-mosdns" "package/luci-app-mosdns" "v5"
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-app-netspeedtest"
-clone_package "https://github.com/kongfl888/luci-app-adguardhome" "package/luci-app-adguardhome"
+clone_folder "https://github.com/coolsnowwolf/luci" "applications/luci-app-adguardhome" "package/luci-app-adguardhome" "openwrt-23.05"
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
 
 # Flippy firmware specific (Amlogic toolbox)
