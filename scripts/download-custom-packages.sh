@@ -59,10 +59,14 @@ if [[ "$CONFIG_FILE" == *"imm"* ]]; then
     rm -rf feeds/packages/net/mosdns
     rm -rf feeds/luci/applications/luci-app-mosdns
     rm -rf feeds/packages/net/v2ray-geodata
+    rm -rf feeds/packages/lang/golang
 
     # Clone sbwml/luci-app-mosdns v5 and v2ray-geodata
     clone_package "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
     clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
+
+    # Clone golang from sbwml/packages_lang_golang
+    clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "24.x"
 
     # Clone adguardhome from coolsnowwolf/luci
     clone_folders "https://github.com/coolsnowwolf/luci" "openwrt-23.05" \
