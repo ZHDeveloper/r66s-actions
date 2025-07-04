@@ -27,7 +27,7 @@ jobs:
         include:
           - name: ImmortalWrt
             repo_url: https://github.com/immortalwrt/immortalwrt
-            repo_branch: openwrt-24.10
+            repo_branch: openwrt-23.05
             config_file: configs/r66s-imm.config
             device_name: _R66S_ImmortalWrt
             cache_key: openwrt
