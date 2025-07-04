@@ -18,6 +18,7 @@ on:
 env:
   TZ: Asia/Shanghai
   UPLOAD_RELEASE: ${{ github.event.inputs.upload_release || true }}
+  TOOLCHAIN_TAG: toolchain
 
 jobs:
   build:
@@ -44,20 +45,15 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         docker rmi $(docker images -q)
-        sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        sudo -E apt-get -qq update
-        sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-        bzip2 cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
-        git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
-        libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
-        mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
-        libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip \
-        vim wget xmlto xxd zlib1g-dev python3-setuptools
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
+        sudo rm -rf /usr/share/dotnet /etc/apt/sources.list.d /usr/local/lib/android $AGENT_TOOLSDIRECTORY
+        sudo swapoff -a && sudo rm -f /swapfile /mnt/swapfile
+        sudo -E apt-get -y purge azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* mongodb* moby* || true
+        (sudo -E apt-get -y update
+        sudo -E apt-get -y install clang rename $(curl -fsSL is.gd/depends_ubuntu_2204)
+        sudo -E systemctl daemon-reload
+        sudo -E apt-get -y autoremove --purge
+        sudo -E apt-get -y clean) &
         sudo timedatectl set-timezone "$TZ"
-        sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
 
     - name: Combine Disks
       run: |
@@ -102,12 +98,68 @@ jobs:
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
 
+        # Set toolchain variables (for future use if needed)
+
+        # Check if toolchain needs rebuild
+        # Create unique toolchain filename based on source repo and branch
+        REPO_NAME=$(echo "${{ matrix.repo_url }}" | sed 's|.*/||' | sed 's|\.git||')
+        BRANCH_SAFE=$(echo "${{ matrix.repo_branch }}" | sed 's|/|-|g')
+        TOOLCHAIN_FILE="${REPO_NAME}-${BRANCH_SAFE}-armv8-toolchain.tar.gz"
+
+        if curl -s -f -I "https://github.com/${{ github.repository }}/releases/download/toolchain/$TOOLCHAIN_FILE" > /dev/null; then
+          echo "REBUILD_TOOLCHAIN=false" >> $GITHUB_ENV
+          echo "TOOLCHAIN_FILE=$TOOLCHAIN_FILE" >> $GITHUB_ENV
+        else
+          echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
+          echo "TOOLCHAIN_FILE=$TOOLCHAIN_FILE" >> $GITHUB_ENV
+        fi
+
+    - name: Download Toolchain
+      if: env.REBUILD_TOOLCHAIN == 'false'
+      run: |
+        cd openwrt
+        wget -q https://github.com/${{ github.repository }}/releases/download/${{ env.TOOLCHAIN_TAG }}/${{ env.TOOLCHAIN_FILE }}
+        tar -xf ${{ env.TOOLCHAIN_FILE }} --strip-components=1
+        rm -f ${{ env.TOOLCHAIN_FILE }}
+
+    - name: Compile Toolchain
+      if: env.REBUILD_TOOLCHAIN == 'true'
+      id: toolchain
+      run: |
+        cd openwrt
+        make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
+        # Package toolchain
+        tar -czf ../${{ env.TOOLCHAIN_FILE }} staging_dir build_dir/host build_dir/toolchain-* dl/toolchain-*
+        mkdir -p $GITHUB_WORKSPACE/output
+        mv ../${{ env.TOOLCHAIN_FILE }} $GITHUB_WORKSPACE/output/
+
+    - name: Delete Old Toolchain
+      if: steps.toolchain.conclusion == 'success'
+      uses: mknejp/delete-release-assets@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ env.TOOLCHAIN_TAG }}
+        assets: '${{ env.TOOLCHAIN_FILE }}'
+        fail-if-no-assets: false
+        fail-if-no-release: false
+
+    - name: Upload Toolchain To Release
+      if: steps.toolchain.conclusion == 'success'
+      uses: softprops/action-gh-release@v2
+      with:
+        name: toolchain-cache
+        tag_name: ${{ env.TOOLCHAIN_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: output/*
+        body: OpenWrt 工具链缓存
+
     - name: Download package
       id: package
       run: |
         cd openwrt
         make defconfig
-        make download -j8
+        # make download -j8
+        make package/download -j$(nproc)
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
@@ -116,7 +168,7 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 || make -j1 V=s
+        make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Package Armvirt as OpenWrt
