@@ -52,6 +52,8 @@ clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-
 
 # ImmortalWrt specific packages
 if [[ "$CONFIG_FILE" == *"imm"* ]]; then
+    rm -rf feeds/packages/net/mosdns
+    rm -rf feeds/luci/applications/luci-app-mosdns
     clone_folders "https://github.com/coolsnowwolf/luci" "openwrt-23.05" \
         "applications/luci-app-adguardhome" \
         "applications/luci-app-mosdns"
