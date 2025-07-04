@@ -36,17 +36,8 @@ clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-
 clone_package "https://github.com/sbwml/luci-app-mosdns" "package/luci-app-mosdns" "v5"
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-app-netspeedtest"
+clone_package "https://github.com/kongfl888/luci-app-adguardhome" "package/luci-app-adguardhome"
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
-
-# Firmware-specific packages
-if [ "$firmware_type" = "lede" ]; then
-    clone_package "https://github.com/kongfl888/luci-app-adguardhome" "package/luci-app-adguardhome"
-    # Update golang for LEDE
-    rm -rf feeds/packages/lang/golang
-    clone_package "https://github.com/sbwml/packages_lang_golang" "packages/lang/golang" "24.x"
-else
-    clone_package "https://github.com/sirpdboy/luci-app-adguardhome" "package/luci-app-adguardhome"
-fi
 
 # Flippy firmware specific (Amlogic toolbox)
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
