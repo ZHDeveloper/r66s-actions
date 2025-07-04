@@ -30,9 +30,9 @@ rm -rf feeds/packages/net/mosdns feeds/luci/themes/luci-theme-argon feeds/luci/a
 mkdir -p package
 
 # Clone common packages
+clone_package "https://github.com/jerrykuku/luci-theme-argon" "package/luci-theme-argon"
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
-
 clone_package "https://github.com/sbwml/luci-app-mosdns" "package/luci-app-mosdns" "v5"
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-app-netspeedtest"
@@ -40,13 +40,11 @@ git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclas
 
 # Firmware-specific packages
 if [ "$firmware_type" = "lede" ]; then
-    clone_package "https://github.com/jerrykuku/luci-theme-argon" "package/luci-theme-argon" "18.06"
     clone_package "https://github.com/kongfl888/luci-app-adguardhome" "package/luci-app-adguardhome"
     # Update golang for LEDE
     rm -rf feeds/packages/lang/golang
     clone_package "https://github.com/sbwml/packages_lang_golang" "packages/lang/golang" "24.x"
 else
-    clone_package "https://github.com/jerrykuku/luci-theme-argon" "package/luci-theme-argon"
     clone_package "https://github.com/sirpdboy/luci-app-adguardhome" "package/luci-app-adguardhome"
 fi
 
