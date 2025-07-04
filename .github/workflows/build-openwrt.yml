@@ -185,5 +185,9 @@ jobs:
       run: |
         # Delete old workflow runs for this workflow only
         gh run list --workflow="build-openwrt.yml" --limit 50 --json databaseId --jq '.[10:][].databaseId' | xargs -I {} gh run delete {} || true
+
+        # Delete failed and cancelled workflow runs
+        gh run list --workflow="build-openwrt.yml" --status failure --limit 20 --json databaseId --jq '.[].databaseId' | xargs -I {} gh run delete {} || true
+        gh run list --workflow="build-openwrt.yml" --status cancelled --limit 20 --json databaseId --jq '.[].databaseId' | xargs -I {} gh run delete {} || true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
