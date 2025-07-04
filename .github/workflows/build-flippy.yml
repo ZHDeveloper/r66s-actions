@@ -30,14 +30,10 @@ jobs:
             repo_url: https://github.com/immortalwrt/immortalwrt
             repo_branch: openwrt-23.05
             config_file: configs/r66s-imm-flippy.config
-            device_name: _ImmortalWrt_Flippy
-            cache_key: flippy-imm
           - name: LEDE
             repo_url: https://github.com/coolsnowwolf/lede
             repo_branch: master
             config_file: configs/r66s-lede-flippy.config
-            device_name: _LEDE_Flippy
-            cache_key: flippy-lede
 
     steps:
     - name: Checkout
@@ -51,7 +47,7 @@ jobs:
         sudo rm -rf /etc/apt/sources.list.d/* /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update
         sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-        bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
+        bzip2 cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
         git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
         libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
         mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
@@ -134,7 +130,7 @@ jobs:
 
     - name: Generate release tag
       id: tag
-      if: env.UPLOAD_RELEASE == 'true' && env.PACKAGED_STATUS == 'success'
+      if: env.UPLOAD_RELEASE == 'true' && steps.package_flippy.conclusion == 'success'
       run: |
         RELEASE_TAG="ARMv8-${{ matrix.name }}"
         echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
