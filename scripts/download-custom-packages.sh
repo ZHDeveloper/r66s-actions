@@ -35,16 +35,14 @@ clone_folder() {
 }
 
 # Clean conflicts and prepare
-rm -rf feeds/packages/net/mosdns feeds/luci/themes/luci-theme-argon feeds/luci/applications/luci-app-mosdns
-# rm -rf feeds/packages/lang/golang
+rm -rf feeds/luci/themes/luci-theme-argon
 mkdir -p package
 
 # Clone common packages
-# clone_package "https://github.com/sbwml/packages_lang_golang" "packages/lang/golang" "23.x"
 clone_package "https://github.com/jerrykuku/luci-theme-argon" "package/luci-theme-argon"
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
-clone_package "https://github.com/sbwml/luci-app-mosdns" "package/luci-app-mosdns" "v5"
+
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-app-netspeedtest"
 clone_folder "https://github.com/coolsnowwolf/luci" "applications/luci-app-adguardhome" "package/luci-app-adguardhome" "openwrt-23.05"

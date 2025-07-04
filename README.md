@@ -13,7 +13,6 @@
 - OpenClash
 - SSR Plus+
 - Mihomo
-- MosDNS DNS 分流
 - Argon 主题 (默认)
 
 ## 默认设置
