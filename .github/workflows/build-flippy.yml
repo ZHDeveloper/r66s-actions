@@ -88,19 +88,6 @@ jobs:
         git clone ${{ matrix.repo_url }} -b ${{ matrix.repo_branch }} openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: Cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.ccache
-          openwrt/.ccache
-          openwrt/staging_dir
-          openwrt/build_dir
-        key: ${{ runner.os }}-${{ matrix.cache_key }}-${{ matrix.repo_branch }}-${{ hashFiles(matrix.config_file) }}
-        restore-keys: |
-          ${{ runner.os }}-${{ matrix.cache_key }}-${{ matrix.repo_branch }}-
-          ${{ runner.os }}-${{ matrix.cache_key }}-
-
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
@@ -119,14 +106,6 @@ jobs:
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
 
-    - name: Setup ccache
-      run: |
-        echo 'CONFIG_CCACHE=y' >> openwrt/.config
-        export PATH="/usr/lib/ccache:$PATH"
-        export CCACHE_DIR=~/.ccache
-        ccache -M 2G
-        ccache -s
-
     - name: Download package
       id: package
       run: |
@@ -141,11 +120,8 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        export PATH="/usr/lib/ccache:$PATH"
-        export CCACHE_DIR=~/.ccache
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
-        ccache -s
 
     - name: Package Armvirt as OpenWrt
       id: package_flippy
