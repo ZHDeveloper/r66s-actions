@@ -22,14 +22,12 @@ clone_package() {
 }
 
 # Clean conflicts and prepare
-rm -rf feeds/packages/net/mosdns 
-rm -rf feeds/packages/lang/golang
-rm -rf feeds/luci/themes/luci-theme-argon 
-rm -rf feeds/luci/applications/luci-app-mosdns
+rm -rf feeds/packages/net/mosdns feeds/luci/themes/luci-theme-argon feeds/luci/applications/luci-app-mosdns
+# rm -rf feeds/packages/lang/golang
 mkdir -p package
 
 # Clone common packages
-clone_package "https://github.com/sbwml/packages_lang_golang" "packages/lang/golang"
+# clone_package "https://github.com/sbwml/packages_lang_golang" "packages/lang/golang" "23.x"
 clone_package "https://github.com/jerrykuku/luci-theme-argon" "package/luci-theme-argon"
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
