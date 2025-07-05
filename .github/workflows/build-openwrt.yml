@@ -115,17 +115,14 @@ jobs:
       run: $GITHUB_WORKSPACE/scripts/toolchain-helper.sh compile "${{ matrix.repo_url }}" "${{ matrix.repo_branch }}" "rockchip"
 
     - name: Upload Toolchain To Release
-      if: steps.toolchain.conclusion == 'success' && !contains(github.workspace, '.skip_toolchain_cache')
-      continue-on-error: true
-      run: |
-        if [ -f "$GITHUB_WORKSPACE/output/.skip_toolchain_cache" ]; then
-          echo "Skipping toolchain upload due to size constraints"
-        else
-          echo "Uploading toolchain to release"
-          gh release upload ${{ env.TOOLCHAIN_TAG }} output/* --clobber || echo "Upload failed, continuing build"
-        fi
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      if: steps.toolchain.conclusion == 'success'
+      uses: softprops/action-gh-release@v2
+      with:
+        name: toolchain-cache
+        tag_name: ${{ env.TOOLCHAIN_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: output/*
+        body: OpenWrt 工具链缓存
 
     - name: Download package
       id: package
