@@ -99,20 +99,63 @@ jobs:
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
 
-    - name: Check toolchain cache
-      id: toolchain_check
-      run: |
-        chmod +x $GITHUB_WORKSPACE/scripts/toolchain-helper.sh
-        $GITHUB_WORKSPACE/scripts/toolchain-helper.sh check "${{ matrix.repo_url }}" "${{ matrix.repo_branch }}" "rockchip"
+        # Set toolchain variables (for future use if needed)
+
+        # Check if toolchain needs rebuild
+        # Create unique toolchain filename based on source repo and branch
+        REPO_NAME=$(echo "${{ matrix.repo_url }}" | sed 's|.*/||' | sed 's|\.git||')
+        BRANCH_SAFE=$(echo "${{ matrix.repo_branch }}" | sed 's|/|-|g')
+        TOOLCHAIN_FILE="${REPO_NAME}-${BRANCH_SAFE}-rockchip-toolchain.tar.gz"
+
+        if curl -s -f -I "https://github.com/${{ github.repository }}/releases/download/toolchain/$TOOLCHAIN_FILE" > /dev/null; then
+          echo "REBUILD_TOOLCHAIN=false" >> $GITHUB_ENV
+          echo "TOOLCHAIN_FILE=$TOOLCHAIN_FILE" >> $GITHUB_ENV
+        else
+          echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
+          echo "TOOLCHAIN_FILE=$TOOLCHAIN_FILE" >> $GITHUB_ENV
+        fi
 
     - name: Download Toolchain
-      if: steps.toolchain_check.outputs.exists == 'true'
-      run: $GITHUB_WORKSPACE/scripts/toolchain-helper.sh download "${{ matrix.repo_url }}" "${{ matrix.repo_branch }}" "rockchip"
+      if: env.REBUILD_TOOLCHAIN == 'false'
+      run: |
+        cd openwrt
+        wget -q https://github.com/${{ github.repository }}/releases/download/${{ env.TOOLCHAIN_TAG }}/${{ env.TOOLCHAIN_FILE }}
+        tar -xf ${{ env.TOOLCHAIN_FILE }} --strip-components=1
+        rm -f ${{ env.TOOLCHAIN_FILE }}
 
     - name: Compile Toolchain
-      if: steps.toolchain_check.outputs.exists == 'false'
+      if: env.REBUILD_TOOLCHAIN == 'true'
       id: toolchain
-      run: $GITHUB_WORKSPACE/scripts/toolchain-helper.sh compile "${{ matrix.repo_url }}" "${{ matrix.repo_branch }}" "rockchip"
+      run: |
+        cd openwrt
+        # Ensure config is properly set before toolchain compilation
+        make defconfig
+        make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
+
+        # Package toolchain - only include existing directories
+        TOOLCHAIN_DIRS=""
+        [ -d staging_dir ] && TOOLCHAIN_DIRS="$TOOLCHAIN_DIRS staging_dir"
+        [ -d build_dir/host ] && TOOLCHAIN_DIRS="$TOOLCHAIN_DIRS build_dir/host"
+        [ -d build_dir/toolchain-* ] && TOOLCHAIN_DIRS="$TOOLCHAIN_DIRS build_dir/toolchain-*"
+
+        if [ -n "$TOOLCHAIN_DIRS" ]; then
+          tar -czf ../${{ env.TOOLCHAIN_FILE }} $TOOLCHAIN_DIRS
+          mkdir -p $GITHUB_WORKSPACE/output
+          mv ../${{ env.TOOLCHAIN_FILE }} $GITHUB_WORKSPACE/output/
+        else
+          echo "Warning: No toolchain directories found to package"
+          exit 1
+        fi
+
+    - name: Delete Old Toolchain
+      if: steps.toolchain.conclusion == 'success'
+      uses: mknejp/delete-release-assets@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ env.TOOLCHAIN_TAG }}
+        assets: '${{ env.TOOLCHAIN_FILE }}'
+        fail-if-no-assets: false
+        fail-if-no-release: false
 
     - name: Upload Toolchain To Release
       if: steps.toolchain.conclusion == 'success'
