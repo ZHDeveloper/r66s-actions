@@ -127,8 +127,6 @@ jobs:
       id: toolchain
       run: |
         cd openwrt
-        # Ensure config is properly set before toolchain compilation
-        make defconfig
         make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
         # Package toolchain
         tar -czf ../${{ env.TOOLCHAIN_FILE }} staging_dir build_dir/host build_dir/toolchain-* dl/toolchain-*
@@ -159,6 +157,7 @@ jobs:
       id: package
       run: |
         cd openwrt
+        make defconfig
         # make download -j8
         make package/download -j$(nproc)
         find dl -size -1024c -exec ls -l {} \;
