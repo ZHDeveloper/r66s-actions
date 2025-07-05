@@ -130,10 +130,20 @@ jobs:
         # Ensure config is properly set before toolchain compilation
         make defconfig
         make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
-        # Package toolchain
-        tar -czf ../${{ env.TOOLCHAIN_FILE }} staging_dir build_dir/host build_dir/toolchain-* dl/toolchain-*
-        mkdir -p $GITHUB_WORKSPACE/output
-        mv ../${{ env.TOOLCHAIN_FILE }} $GITHUB_WORKSPACE/output/
+        # Package toolchain - only include existing directories
+        TOOLCHAIN_DIRS=""
+        [ -d staging_dir ] && TOOLCHAIN_DIRS="$TOOLCHAIN_DIRS staging_dir"
+        [ -d build_dir/host ] && TOOLCHAIN_DIRS="$TOOLCHAIN_DIRS build_dir/host"
+        [ -d build_dir/toolchain-* ] && TOOLCHAIN_DIRS="$TOOLCHAIN_DIRS build_dir/toolchain-*"
+
+        if [ -n "$TOOLCHAIN_DIRS" ]; then
+          tar -czf ../${{ env.TOOLCHAIN_FILE }} $TOOLCHAIN_DIRS
+          mkdir -p $GITHUB_WORKSPACE/output
+          mv ../${{ env.TOOLCHAIN_FILE }} $GITHUB_WORKSPACE/output/
+        else
+          echo "Warning: No toolchain directories found to package"
+          exit 1
+        fi
 
     - name: Delete Old Toolchain
       if: steps.toolchain.conclusion == 'success'
