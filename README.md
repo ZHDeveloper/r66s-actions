@@ -12,7 +12,6 @@
 - Passwall (支持多种协议)
 - OpenClash
 - SSR Plus+
-- Mihomo
 - Argon 主题 (默认)
 
 ## 默认设置

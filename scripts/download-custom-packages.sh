@@ -45,7 +45,6 @@ clone_package "https://github.com/jerrykuku/luci-theme-argon" "package/luci-them
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
-clone_package "https://github.com/sirpdboy/luci-app-netspeedtest" "package/luci-app-netspeedtest"
 
 # sbwml/luci-app-mosdns
 find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
