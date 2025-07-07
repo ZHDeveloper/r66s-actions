@@ -5,66 +5,59 @@ set -e
 FIRMWARE_TYPE="immortalwrt"
 [[ "$CONFIG_FILE" == *"lede"* ]] && FIRMWARE_TYPE="lede"
 
-# Basic configuration
+# Set default theme
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
-# Set IP address and hostname based on firmware type
+# Configure LEDE firmware
 if [ "$FIRMWARE_TYPE" = "lede" ]; then
-    # LEDE specific configuration
-    [ -f "package/lean/default-settings/files/zzz-default-settings" ] && {
-        # 修改默认IP地址
+    if [ -f "package/lean/default-settings/files/zzz-default-settings" ]; then
+        # Set IP address to 192.168.100.1
         sed -i 's/192.168.1.1/192.168.100.1/g' package/lean/default-settings/files/zzz-default-settings
-        # 如果没有IP配置，添加IP配置
-        if ! grep -q "192.168.100.1" package/lean/default-settings/files/zzz-default-settings; then
-            sed -i "3i uci set network.lan.ipaddr='192.168.100.1'" package/lean/default-settings/files/zzz-default-settings
-            sed -i "4i uci commit network" package/lean/default-settings/files/zzz-default-settings
+
+        # Ensure IP configuration exists
+        if ! grep -q "network.lan.ipaddr" package/lean/default-settings/files/zzz-default-settings; then
+            sed -i "2a uci set network.lan.ipaddr='192.168.100.1'" package/lean/default-settings/files/zzz-default-settings
+            sed -i "3a uci commit network" package/lean/default-settings/files/zzz-default-settings
         fi
-        # 修改banner
+
+        # Set timezone
+        if ! grep -q "CST-8" package/lean/default-settings/files/zzz-default-settings; then
+            echo "uci set system.@system[0].timezone='CST-8'" >> package/lean/default-settings/files/zzz-default-settings
+            echo "uci set system.@system[0].zonename='Asia/Shanghai'" >> package/lean/default-settings/files/zzz-default-settings
+            echo "uci commit system" >> package/lean/default-settings/files/zzz-default-settings
+        fi
+
+        # Update banner
         sed -i "s/OpenWrt /OpenWrt $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" package/lean/default-settings/files/zzz-default-settings
-    }
+    fi
 else
-    # ImmortalWrt specific configuration
+    # Configure ImmortalWrt firmware
     sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/files/bin/config_generate
     sed -i 's/OpenWrt/ImmortalWrt/g' package/base-files/files/bin/config_generate
-    [ -f "package/lean/default-settings/files/zzz-default-settings" ] && \
-        sed -i "s/OpenWrt /ImmortalWrt $(TZ=UTC-8 date "+%Y.%m.%d") @ ImmortalWrt /g" package/lean/default-settings/files/zzz-default-settings
-fi
-
-# Set default password and banner
-sed -i 's/root:::0:99999:7:::/root:$1$V4UetPzk$CYXluq4wUazHjmCDBCqXF.:0:0:99999:7:::/g' package/base-files/files/etc/shadow
-echo "Built on $(TZ=UTC-8 date "+%Y-%m-%d %H:%M:%S")" >> package/base-files/files/etc/banner
-
-# Network optimization
-cat >> package/base-files/files/etc/sysctl.conf << EOF
-# Custom settings
-net.core.default_qdisc=fq
-net.ipv4.tcp_congestion_control=bbr
-EOF
-
-cat >> package/base-files/files/etc/sysctl.d/10-default.conf << EOF
-net.core.default_qdisc=fq
-net.ipv4.tcp_congestion_control=bbr
-EOF
-
-# Timezone configuration
-if [ "$FIRMWARE_TYPE" = "lede" ]; then
-    # LEDE timezone configuration
-    [ -f "package/lean/default-settings/files/zzz-default-settings" ] && {
-        sed -i "/timezone.*UTC/d" package/lean/default-settings/files/zzz-default-settings
-        sed -i "/zonename.*UTC/d" package/lean/default-settings/files/zzz-default-settings
-        echo "uci set system.@system[0].timezone='CST-8'" >> package/lean/default-settings/files/zzz-default-settings
-        echo "uci set system.@system[0].zonename='Asia/Shanghai'" >> package/lean/default-settings/files/zzz-default-settings
-        echo "uci commit system" >> package/lean/default-settings/files/zzz-default-settings
-    }
-else
-    # ImmortalWrt timezone configuration
     sed -i "s/'UTC'/'CST-8'/g" package/base-files/files/bin/config_generate
-    sed -i "/system.@system\[0\].timezone/d" package/base-files/files/bin/config_generate
+
+    # Add timezone configuration
     cat >> package/base-files/files/bin/config_generate << EOF
 uci set system.@system[0].timezone='CST-8'
 uci set system.@system[0].zonename='Asia/Shanghai'
 uci commit system
 EOF
+
+    # Update banner for ImmortalWrt
+    [ -f "package/lean/default-settings/files/zzz-default-settings" ] && \
+        sed -i "s/OpenWrt /ImmortalWrt $(TZ=UTC-8 date "+%Y.%m.%d") @ ImmortalWrt /g" package/lean/default-settings/files/zzz-default-settings
 fi
 
+# Set default password (password)
+sed -i 's/root:::0:99999:7:::/root:$1$V4UetPzk$CYXluq4wUazHjmCDBCqXF.:0:0:99999:7:::/g' package/base-files/files/etc/shadow
 
+# Add build timestamp
+echo "Built on $(TZ=UTC-8 date "+%Y-%m-%d %H:%M:%S")" >> package/base-files/files/etc/banner
+
+# Network optimization (BBR)
+mkdir -p package/base-files/files/etc/sysctl.d
+cat > package/base-files/files/etc/sysctl.d/99-custom.conf << EOF
+# Network optimization
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+EOF
