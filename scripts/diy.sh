@@ -53,11 +53,3 @@ sed -i 's/root:::0:99999:7:::/root:$1$V4UetPzk$CYXluq4wUazHjmCDBCqXF.:0:0:99999:
 
 # Add build timestamp
 echo "Built on $(TZ=UTC-8 date "+%Y-%m-%d %H:%M:%S")" >> package/base-files/files/etc/banner
-
-# Network optimization (BBR)
-mkdir -p package/base-files/files/etc/sysctl.d
-cat > package/base-files/files/etc/sysctl.d/99-custom.conf << EOF
-# Network optimization
-net.core.default_qdisc=fq
-net.ipv4.tcp_congestion_control=bbr
-EOF
