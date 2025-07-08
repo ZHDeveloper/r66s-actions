@@ -9,6 +9,11 @@ on:
         required: false
         default: true
         type: boolean
+      toolchain:
+        description: 'Use toolchain cache'
+        required: false
+        default: true
+        type: boolean
   watch:
     types: [started]
   schedule:
@@ -18,6 +23,8 @@ on:
 env:
   TZ: Asia/Shanghai
   UPLOAD_RELEASE: ${{ github.event.inputs.upload_release || true }}
+  TOOLCHAIN: ${{ github.event.inputs.toolchain || true }}
+  TOOLCHAIN_TAG: toolchain
 
 jobs:
   build:
@@ -102,11 +109,36 @@ jobs:
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
 
+    - name: Cache Toolchain
+      if: env.TOOLCHAIN == 'true'
+      id: cache-toolchain
+      uses: actions/cache@v4
+      with:
+        path: |
+          openwrt/staging_dir/toolchain-*
+          openwrt/staging_dir/host
+          openwrt/build_dir/host
+        key: ${{ runner.os }}-${{ matrix.name }}-toolchain-${{ hashFiles('openwrt/include/version.mk', 'openwrt/include/kernel-version.mk') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.name }}-toolchain-
+
+    - name: Compile Toolchain
+      if: env.TOOLCHAIN == 'true' && steps.cache-toolchain.outputs.cache-hit != 'true'
+      id: toolchain
+      run: |
+        cd openwrt
+        make defconfig
+        echo "Compiling toolchain..."
+        make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
+        echo "status=success" >> $GITHUB_OUTPUT
+
     - name: Download package
       id: package
       run: |
         cd openwrt
-        make defconfig
+        if [ "$TOOLCHAIN" != "true" ] || [ "${{ steps.cache-toolchain.outputs.cache-hit }}" == "true" ]; then
+          make defconfig
+        fi
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
