@@ -36,11 +36,11 @@ jobs:
           - name: ImmortalWrt
             repo_url: https://github.com/immortalwrt/immortalwrt
             repo_branch: openwrt-23.05
-            config_file: configs/r66s-imm-flippy.config
+            config_file: configs/r66s-flippy.config
           - name: LEDE
             repo_url: https://github.com/coolsnowwolf/lede
             repo_branch: master
-            config_file: configs/r66s-lede-flippy.config
+            config_file: configs/r66s-flippy.config
 
     steps:
     - name: Checkout
