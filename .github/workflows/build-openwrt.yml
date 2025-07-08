@@ -91,11 +91,6 @@ jobs:
     - name: Cache Toolchain
       run: |
         chmod +x scripts/*.sh
-        cd openwrt
-        # 生成工具链缓存文件名
-        TOOLS_HASH=$(git log --pretty=tformat:"%h" -n1 tools toolchain)
-        CACHE_NAME="${{ matrix.name }}-toolchain-cache-$TOOLS_HASH"
-        echo "CACHE_NAME=$CACHE_NAME" >> $GITHUB_ENV
         $GITHUB_WORKSPACE/scripts/package-toolchain.sh
 
     - name: Load custom configuration
@@ -120,7 +115,7 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ env.TOOLCHAIN_TAG }}
-        assets: '${{ matrix.name }}-*'
+        assets: '${{ env.FIRMWARE_TYPE }}-*'
         fail-if-no-assets: false
         fail-if-no-release: false
 
