@@ -94,9 +94,7 @@ jobs:
 
     - name: Load custom configuration
       run: |
-        [ -e files ] && mv files openwrt/files
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-        find openwrt/files -name "auto-expand-overlay" -type f -exec chmod +x {} \; 2>/dev/null || true
         chmod +x scripts/*.sh
         cd openwrt
         $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
