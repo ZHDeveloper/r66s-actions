@@ -107,6 +107,7 @@ jobs:
       run: |
         cd openwrt
         make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
+        $GITHUB_WORKSPACE/scripts/package-toolchain.sh
 
     - name: Delete Old Toolchain
       if: steps.toolchain.conclusion == 'success' || env.UPLOAD_RELEASE == 'true'
