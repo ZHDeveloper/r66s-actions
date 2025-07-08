@@ -10,8 +10,6 @@ on:
 
 env:
   TZ: Asia/Shanghai
-  UPLOAD_RELEASE: true
-  TOOLCHAIN: true
   TOOLCHAIN_TAG: toolchain
 
 jobs:
@@ -117,7 +115,7 @@ jobs:
         $GITHUB_WORKSPACE/scripts/package-toolchain.sh
 
     - name: Delete Old Toolchain
-      if: steps.toolchain.conclusion == 'success' || env.UPLOAD_RELEASE == 'true'
+      if: steps.toolchain.conclusion == 'success'
       uses: mknejp/delete-release-assets@v1
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -127,7 +125,7 @@ jobs:
         fail-if-no-release: false
 
     - name: Upload Toolchain To Release
-      if: steps.toolchain.conclusion == 'success' || env.UPLOAD_RELEASE == 'true'
+      if: steps.toolchain.conclusion == 'success'
       uses: softprops/action-gh-release@v2
       with:
         name: toolchain-cache
@@ -164,7 +162,7 @@ jobs:
 
     - name: Generate release tag
       id: tag
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true'
+      if: steps.organize.outputs.status == 'success'
       run: |
         echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
         touch release.txt

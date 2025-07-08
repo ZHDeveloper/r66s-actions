@@ -19,17 +19,13 @@ fi
 cd $OPENWRT_PATH
 
 # 下载并部署Toolchain
-if [[ $TOOLCHAIN = 'true' ]]; then
-    cache_url=$(curl -sL api.github.com/repos/$GITHUB_REPOSITORY/releases | awk -F '"' '/download_url/{print $4}' | grep $CACHE_NAME)
+cache_url=$(curl -sL api.github.com/repos/$GITHUB_REPOSITORY/releases | awk -F '"' '/download_url/{print $4}' | grep $CACHE_NAME)
 
-    if [[ $cache_url ]]; then
-        wget -qc -t=3 $cache_url
-        if [ -e *.tzst ]; then
-            tar -I unzstd -xf *.tzst || tar -xf *.tzst
-            sed -i 's/ $(tool.*\/stamp-compile)//' Makefile
-        fi
-    else
-        echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
+if [[ $cache_url ]]; then
+    wget -qc -t=3 $cache_url
+    if [ -e *.tzst ]; then
+        tar -I unzstd -xf *.tzst || tar -xf *.tzst
+        sed -i 's/ $(tool.*\/stamp-compile)//' Makefile
     fi
 else
     echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
