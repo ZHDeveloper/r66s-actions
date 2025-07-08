@@ -1,15 +1,11 @@
 #!/bin/bash
 set -e
 
-# Detect firmware type
-FIRMWARE_TYPE="immortalwrt"
-[[ "$CONFIG_FILE" == *"lede"* ]] && FIRMWARE_TYPE="lede"
-
 # Set default theme
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
 # Configure LEDE firmware
-if [ "$FIRMWARE_TYPE" = "lede" ]; then
+if [ "$FIRMWARE_TYPE" = "LEDE" ]; then
     if [ -f "package/lean/default-settings/files/zzz-default-settings" ]; then
         # Set IP address to 192.168.100.1
         sed -i 's/192.168.1.1/192.168.100.1/g' package/lean/default-settings/files/zzz-default-settings

@@ -59,7 +59,7 @@ clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
 clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "24.x"
 
 # ImmortalWrt specific packages
-if [[ "$CONFIG_FILE" == *"imm"* ]]; then
+if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
     # Clone adguardhome from coolsnowwolf/luci
     clone_folders "https://github.com/coolsnowwolf/luci" "openwrt-23.05" \
         "applications/luci-app-adguardhome"

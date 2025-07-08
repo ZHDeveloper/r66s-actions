@@ -43,6 +43,8 @@ jobs:
 
     env:
       CONFIG_FILE: ${{ matrix.config_file }}
+      FIRMWARE_TYPE: ${{ matrix.name }}
+      RELEASE_TAG: ${{ matrix.name }}_R66S
 
     steps:
     - name: Checkout
@@ -163,7 +165,6 @@ jobs:
       id: tag
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_RELEASE == 'true'
       run: |
-        RELEASE_TAG="${{ matrix.name }}_R66S"
         echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
         touch release.txt
         echo "📦 ${{ matrix.name }} R66S 固件" >> release.txt

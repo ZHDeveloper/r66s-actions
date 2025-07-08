@@ -42,6 +42,12 @@ jobs:
             repo_branch: master
             config_file: configs/r66s-flippy.config
 
+    env:
+      CONFIG_FILE: ${{ matrix.config_file }}
+      FIRMWARE_TYPE: ${{ matrix.name }}
+      RELEASE_TAG: ARMv8-${{ matrix.name }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -99,12 +105,9 @@ jobs:
 
     - name: Load custom configuration
       run: |
-        [ -e ${{ matrix.config_file }} ] && mv ${{ matrix.config_file }} openwrt/.config
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
         chmod +x scripts/*.sh
         cd openwrt
-        export RELEASE_TAG="ARMv8-${{ matrix.name }}"
-        export CONFIG_FILE="${{ matrix.config_file }}"
-        export GITHUB_REPOSITORY="${{ github.repository }}"
         $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
@@ -164,7 +167,6 @@ jobs:
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && steps.package_flippy.conclusion == 'success'
       run: |
-        RELEASE_TAG="ARMv8-${{ matrix.name }}"
         echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
         touch release.txt
         echo "📦 ${{ matrix.name }} N1 & R66S Flippy 固件" >> release.txt
