@@ -3,17 +3,6 @@ name: Build Flippy Firmware for ARMv8
 on:
   repository_dispatch:
   workflow_dispatch:
-    inputs:
-      upload_release:
-        description: 'Upload to release'
-        required: false
-        default: true
-        type: boolean
-      toolchain:
-        description: 'Use toolchain cache'
-        required: false
-        default: true
-        type: boolean
   watch:
     types: [started]
   schedule:
@@ -22,8 +11,8 @@ on:
 
 env:
   TZ: Asia/Shanghai
-  UPLOAD_RELEASE: ${{ github.event.inputs.upload_release || true }}
-  TOOLCHAIN: ${{ github.event.inputs.toolchain || true }}
+  UPLOAD_RELEASE: true
+  TOOLCHAIN: true
   TOOLCHAIN_TAG: toolchain
 
 jobs:
@@ -112,36 +101,38 @@ jobs:
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
 
-    - name: Cache Toolchain
-      if: env.TOOLCHAIN == 'true'
-      id: cache-toolchain
-      uses: actions/cache@v4
-      with:
-        path: |
-          openwrt/staging_dir/toolchain-*
-          openwrt/staging_dir/host
-          openwrt/build_dir/host
-        key: ${{ runner.os }}-${{ matrix.name }}-toolchain-${{ hashFiles('openwrt/include/version.mk', 'openwrt/include/kernel-version.mk') }}
-        restore-keys: |
-          ${{ runner.os }}-${{ matrix.name }}-toolchain-
-
     - name: Compile Toolchain
-      if: env.TOOLCHAIN == 'true' && steps.cache-toolchain.outputs.cache-hit != 'true'
+      if: env.TOOLCHAIN == 'true'
       id: toolchain
       run: |
         cd openwrt
-        make defconfig
-        echo "Compiling toolchain..."
         make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
-        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Delete Old Toolchain
+      if: steps.toolchain.conclusion == 'success' || env.UPLOAD_RELEASE == 'true'
+      uses: mknejp/delete-release-assets@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ env.TOOLCHAIN_TAG }}
+        assets: '${{ matrix.name }}-*'
+        fail-if-no-assets: false
+        fail-if-no-release: false
+
+    - name: Upload Toolchain To Release
+      if: steps.toolchain.conclusion == 'success' || env.UPLOAD_RELEASE == 'true'
+      uses: softprops/action-gh-release@v2
+      with:
+        name: toolchain-cache
+        tag_name: ${{ env.TOOLCHAIN_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        files: output/*
+        body: OpenWrt 工具链缓存
 
     - name: Download package
       id: package
       run: |
         cd openwrt
-        if [ "$TOOLCHAIN" != "true" ] || [ "${{ steps.cache-toolchain.outputs.cache-hit }}" == "true" ]; then
-          make defconfig
-        fi
+        make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
