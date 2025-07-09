@@ -21,23 +21,6 @@ clone_package() {
     [ -n "$branch" ] && git clone --depth=1 -b "$branch" "$url" "$target" || git clone --depth=1 "$url" "$target"
 }
 
-# Clone multiple folders from git repository
-clone_folders() {
-    local url="$1" branch="$2"
-    shift 2
-    local temp_dir=$(basename "$url")-temp
-    local folders=("$@")
-
-    git clone --depth=1 -b "$branch" --single-branch --filter=blob:none --sparse "$url" "$temp_dir" && \
-    cd "$temp_dir" && \
-    git sparse-checkout init --cone && \
-    git sparse-checkout set "${folders[@]}" && \
-    for folder in "${folders[@]}"; do
-        [ -d "$folder" ] && mv "$folder" "../package/$(basename "$folder")"
-    done && \
-    cd .. && rm -rf "$temp_dir"
-}
-
 mkdir -p package
 
 # Clone common packages
@@ -47,8 +30,10 @@ clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 
 # Clone linkease packages
-git_sparse_clone master https://github.com/linkease/nas-packages nas-packages
-git_sparse_clone main https://github.com/linkease/nas-packages-luci nas-packages-luci
+git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
+git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-linkease
+git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
+git_sparse_clone master https://github.com/linkease/nas-packages network/services/linkease
 
 # sbwml/luci-app-mosdns
 find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
@@ -65,8 +50,7 @@ clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/la
 # ImmortalWrt specific packages
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
     # Clone adguardhome from coolsnowwolf/luci
-    clone_folders "https://github.com/coolsnowwolf/luci" "openwrt-23.05" \
-        "applications/luci-app-adguardhome"
+    git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
 fi
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
