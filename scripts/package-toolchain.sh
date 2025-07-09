@@ -1,82 +1,52 @@
 #!/bin/bash
-
 set -e
 
-# 环境变量设置
+# 环境设置
 OPENWRT_PATH="${OPENWRT_PATH:-$GITHUB_WORKSPACE/openwrt}"
-GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-$GITHUB_REPOSITORY}"
+: "${FIRMWARE_TYPE:?}" >/dev/null 2>&1
+: "${GITHUB_REPOSITORY:?}" >/dev/null 2>&1
 
-# 检查必要的环境变量
-if [[ -z "$FIRMWARE_TYPE" ]]; then
-    echo "Error: FIRMWARE_TYPE environment variable is not set"
-    exit 1
-fi
-
-if [[ -z "$GITHUB_REPOSITORY" ]]; then
-    echo "Error: GITHUB_REPOSITORY environment variable is not set"
-    exit 1
-fi
-
-# 生成工具链缓存文件名
-cd $OPENWRT_PATH
+# 生成工具链缓存名称
+cd "$OPENWRT_PATH"
 TOOLS_HASH=$(git log --pretty=tformat:"%h" -n1 tools toolchain)
 CACHE_NAME="$FIRMWARE_TYPE-toolchain-cache-$TOOLS_HASH"
 echo "CACHE_NAME=$CACHE_NAME" >> $GITHUB_ENV
 
-# 打包Toolchain
-if [[ $REBUILD_TOOLCHAIN = 'true' ]]; then
-    cd $OPENWRT_PATH
+# 打包工具链函数
+package_toolchain() {
     sed -i 's/ $(tool.*\/stamp-compile)//' Makefile
+    mkdir -p "$GITHUB_WORKSPACE/output"
 
-    # 检查 .ccache 目录并设置变量
-    ccache_dir=""
-    [ -d ".ccache" ] && ccache_dir=".ccache"
+    # 如果存在则包含 .ccache
+    local files="staging_dir/host* staging_dir/tool*"
+    [ -d ".ccache" ] && files="$files .ccache"
 
-    # 创建输出目录
-    mkdir -p $GITHUB_WORKSPACE/output
+    tar -I zstdmt -cf "$GITHUB_WORKSPACE/output/$CACHE_NAME.tzst" $files || exit 1
+}
 
-    # 打包工具链，处理 ccache 目录
-    if [[ -n "$ccache_dir" ]]; then
-        tar -I zstdmt -cf $GITHUB_WORKSPACE/output/$CACHE_NAME.tzst staging_dir/host* staging_dir/tool* $ccache_dir
-    else
-        tar -I zstdmt -cf $GITHUB_WORKSPACE/output/$CACHE_NAME.tzst staging_dir/host* staging_dir/tool*
-    fi
-
-    # 检查打包是否成功
-    if [[ ! -e $GITHUB_WORKSPACE/output/$CACHE_NAME.tzst ]]; then
-        echo "Error: Failed to create toolchain package"
-        exit 1
-    fi
-
-    echo "Toolchain packaged successfully: $CACHE_NAME.tzst"
+# 如果需要重建则打包工具链
+[[ $REBUILD_TOOLCHAIN = 'true' ]] && {
+    package_toolchain
     exit 0
-fi
+}
 
-# 创建输出目录
-mkdir -p $GITHUB_WORKSPACE/output
+# 下载和部署工具链
+download_toolchain() {
+    local cache_url
+    cache_url=$(curl -sL "https://api.github.com/repos/$GITHUB_REPOSITORY/releases" | \
+                awk -F '"' '/download_url/{print $4}' | grep "$CACHE_NAME" | head -1)
 
-# 下载并部署Toolchain
-echo "Checking for existing toolchain cache: $CACHE_NAME"
-cache_url=$(curl -sL "https://api.github.com/repos/$GITHUB_REPOSITORY/releases" | awk -F '"' '/download_url/{print $4}' | grep "$CACHE_NAME" | head -1)
+    [ -n "$cache_url" ] && wget -qc -t=3 "$cache_url" >/dev/null 2>&1 && \
+    ls *.tzst >/dev/null 2>&1 && {
+        tar -I unzstd -xf *.tzst >/dev/null 2>&1 || tar -xf *.tzst >/dev/null 2>&1
+        sed -i 's/ $(tool.*\/stamp-compile)//' Makefile
+        return 0
+    }
 
-if [[ -n "$cache_url" ]]; then
-    echo "Found toolchain cache, downloading: $cache_url"
-    cd $OPENWRT_PATH
-    if wget -qc -t=3 "$cache_url"; then
-        if [ -e *.tzst ]; then
-            echo "Extracting toolchain cache..."
-            tar -I unzstd -xf *.tzst || tar -xf *.tzst
-            sed -i 's/ $(tool.*\/stamp-compile)//' Makefile
-            echo "Toolchain cache extracted successfully"
-        else
-            echo "Warning: Downloaded file not found"
-            echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
-        fi
-    else
-        echo "Warning: Failed to download toolchain cache"
-        echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
-    fi
-else
-    echo "No existing toolchain cache found, will rebuild"
     echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
-fi
+    return 1
+}
+
+# 创建输出目录并尝试下载现有工具链
+mkdir -p "$GITHUB_WORKSPACE/output"
+download_toolchain
