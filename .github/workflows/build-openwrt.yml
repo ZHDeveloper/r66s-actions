@@ -32,6 +32,7 @@ jobs:
       CONFIG_FILE: ${{ matrix.config_file }}
       FIRMWARE_TYPE: ${{ matrix.name }}
       RELEASE_TAG: ${{ matrix.name }}_R66S
+      GITHUB_REPOSITORY: ${{ github.repository }}
 
     steps:
     - name: Checkout
