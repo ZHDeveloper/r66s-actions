@@ -32,10 +32,10 @@ jobs:
       RELEASE_TAG: ${{ matrix.name }}_R66S
 
     steps:
-    - name: 检出代码
+    - name: Checkout
       uses: actions/checkout@v4
 
-    - name: 初始化环境
+    - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
@@ -54,7 +54,7 @@ jobs:
         sudo -E apt-get -qq clean
         sudo timedatectl set-timezone "$TZ"
 
-    - name: 合并磁盘
+    - name: Combine Disks
       run: |
         MNT_SIZE=$((($(df --block-size=1024 --output=avail /mnt | tail -1) - 1024*1024*1) * 1024))
         ROOT_SIZE=$((($(df --block-size=1024 --output=avail / | tail -1) - 1024*1024*4) * 1024))
@@ -72,13 +72,13 @@ jobs:
         sudo chown -R runner:runner /workdir
         df -hT
 
-    - name: 克隆源代码
+    - name: Clone source code
       working-directory: /workdir
       run: |
         git clone ${{ matrix.repo_url }} -b ${{ matrix.repo_branch }} openwrt
         ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
-    - name: 更新软件源
+    - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
 
     - name: Install feeds
