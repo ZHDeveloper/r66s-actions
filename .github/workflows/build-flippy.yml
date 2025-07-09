@@ -94,10 +94,10 @@ jobs:
       run: |
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
         cd openwrt
+        make defconfig
         $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
-        make defconfig
 
     - name: Compile Toolchain
       if: env.REBUILD_TOOLCHAIN == 'true'
