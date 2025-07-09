@@ -106,6 +106,7 @@ jobs:
       id: toolchain
       run: |
         cd openwrt
+        make defconfig
         make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
         $GITHUB_WORKSPACE/scripts/package-toolchain.sh
 
@@ -133,7 +134,6 @@ jobs:
       id: package
       run: |
         cd openwrt
-        make defconfig
         make download -j8
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
