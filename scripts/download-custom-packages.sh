@@ -46,6 +46,10 @@ clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
 clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 
+# Clone linkease packages
+git_sparse_clone master https://github.com/linkease/nas-packages nas-packages
+git_sparse_clone main https://github.com/linkease/nas-packages-luci nas-packages-luci
+
 # sbwml/luci-app-mosdns
 find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
 find ./ | grep Makefile | grep mosdns | xargs rm -f
