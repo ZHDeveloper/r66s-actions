@@ -96,13 +96,13 @@ jobs:
         $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
+        make defconfig
 
     - name: Compile Toolchain
       if: env.REBUILD_TOOLCHAIN == 'true'
       id: toolchain
       run: |
         cd openwrt
-        make defconfig
         make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
         $GITHUB_WORKSPACE/scripts/package-toolchain.sh
 

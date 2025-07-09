@@ -8,12 +8,10 @@ GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-$GITHUB_REPOSITORY}"
 
 # 检查必要的环境变量
 if [[ -z "$FIRMWARE_TYPE" ]]; then
-    echo "Error: FIRMWARE_TYPE environment variable is not set"
     exit 1
 fi
 
 if [[ -z "$GITHUB_REPOSITORY" ]]; then
-    echo "Error: GITHUB_REPOSITORY environment variable is not set"
     exit 1
 fi
 
@@ -44,11 +42,9 @@ if [[ $REBUILD_TOOLCHAIN = 'true' ]]; then
 
     # 检查打包是否成功
     if [[ ! -e $GITHUB_WORKSPACE/output/$CACHE_NAME.tzst ]]; then
-        echo "Error: Failed to create toolchain package"
         exit 1
     fi
 
-    echo "Toolchain packaged successfully: $CACHE_NAME.tzst"
     exit 0
 fi
 
@@ -56,27 +52,20 @@ fi
 mkdir -p $GITHUB_WORKSPACE/output
 
 # 下载并部署Toolchain
-echo "Checking for existing toolchain cache: $CACHE_NAME"
 cache_url=$(curl -sL "https://api.github.com/repos/$GITHUB_REPOSITORY/releases" | awk -F '"' '/download_url/{print $4}' | grep "$CACHE_NAME" | head -1)
 
 if [[ -n "$cache_url" ]]; then
-    echo "Found toolchain cache, downloading: $cache_url"
     cd $OPENWRT_PATH
     if wget -qc -t=3 "$cache_url"; then
         if [ -e *.tzst ]; then
-            echo "Extracting toolchain cache..."
             tar -I unzstd -xf *.tzst || tar -xf *.tzst
             sed -i 's/ $(tool.*\/stamp-compile)//' Makefile
-            echo "Toolchain cache extracted successfully"
         else
-            echo "Warning: Downloaded file not found"
             echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
         fi
     else
-        echo "Warning: Failed to download toolchain cache"
         echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
     fi
 else
-    echo "No existing toolchain cache found, will rebuild"
     echo "REBUILD_TOOLCHAIN=true" >> $GITHUB_ENV
 fi
