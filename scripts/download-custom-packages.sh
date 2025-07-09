@@ -1,61 +1,77 @@
 #!/bin/bash
 set -e
 
-# 统一的 git 克隆函数
-git_clone() {
-    local url="$1" target="$2" branch="${3:-}" folders=("${@:4}")
+# Sparse clone function
+git_sparse_clone() {
+    local branch="$1" repourl="$2"
+    shift 2
+    local repodir=$(basename "$repourl")
 
-    if [ ${#folders[@]} -gt 0 ]; then
-        # 稀疏克隆指定文件夹
-        local temp_dir=$(basename "$url")-temp
-        git clone --depth=1 ${branch:+-b "$branch"} --single-branch --filter=blob:none --sparse "$url" "$temp_dir" >/dev/null 2>&1
-        cd "$temp_dir"
-        git sparse-checkout init --cone >/dev/null 2>&1
-        git sparse-checkout set "${folders[@]}" >/dev/null 2>&1
-        for folder in "${folders[@]}"; do
-            [ -d "$folder" ] && mv "$folder" "../package/$(basename "$folder")"
-        done
-        cd .. && rm -rf "$temp_dir"
-    else
-        # 常规克隆
-        git clone --depth=1 ${branch:+-b "$branch"} "$url" "$target" >/dev/null 2>&1
-    fi
+    git clone --depth=1 -b "$branch" --single-branch --filter=blob:none --sparse "$repourl" && \
+    cd "$repodir" && \
+    git sparse-checkout init --cone && \
+    git sparse-checkout set "$@" && \
+    mv -f "$@" ../package/ && \
+    cd .. && rm -rf "$repodir"
 }
 
-# 清理冲突的软件包
-clean_conflicts() {
-    find ./ -name Makefile | grep -E "(v2ray-geodata|mosdns)" | xargs rm -f 2>/dev/null || true
-    rm -rf feeds/packages/net/{mosdns,v2ray-geodata} feeds/luci/applications/luci-app-mosdns feeds/packages/lang/golang 2>/dev/null || true
+# Clone package function
+clone_package() {
+    local url="$1" target="$2" branch="$3"
+    [ -n "$branch" ] && git clone --depth=1 -b "$branch" "$url" "$target" || git clone --depth=1 "$url" "$target"
+}
+
+# Clone multiple folders from git repository
+clone_folders() {
+    local url="$1" branch="$2"
+    shift 2
+    local temp_dir=$(basename "$url")-temp
+    local folders=("$@")
+
+    git clone --depth=1 -b "$branch" --single-branch --filter=blob:none --sparse "$url" "$temp_dir" && \
+    cd "$temp_dir" && \
+    git sparse-checkout init --cone && \
+    git sparse-checkout set "${folders[@]}" && \
+    for folder in "${folders[@]}"; do
+        [ -d "$folder" ] && mv "$folder" "../package/$(basename "$folder")"
+    done && \
+    cd .. && rm -rf "$temp_dir"
 }
 
 mkdir -p package
 
-# 首先清理冲突的软件包
-clean_conflicts
+# Clone common packages
+clone_package "https://github.com/jerrykuku/luci-theme-argon" "package/luci-theme-argon"
+clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
+clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
+clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 
-# 克隆通用软件包
-git_clone "https://github.com/jerrykuku/luci-theme-argon" "package/luci-theme-argon"
-git_clone "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
-git_clone "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
-git_clone "https://github.com/linkease/istore" "package/luci-app-store"
+# sbwml/luci-app-mosdns
+find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
+find ./ | grep Makefile | grep mosdns | xargs rm -f
+rm -rf feeds/packages/net/mosdns
+rm -rf feeds/luci/applications/luci-app-mosdns
+rm -rf feeds/packages/net/v2ray-geodata
+rm -rf feeds/packages/lang/golang
 
-# sbwml 软件包
-git_clone "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
-git_clone "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
-git_clone "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "24.x"
+clone_package "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
+clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
+clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "24.x"
 
-# OpenClash 软件包
-git_clone "https://github.com/vernesong/OpenClash" "" "master" "luci-app-openclash"
-
-# 固件特定软件包
+# ImmortalWrt specific packages
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
-    git_clone "https://github.com/coolsnowwolf/luci" "" "openwrt-23.05" "applications/luci-app-adguardhome"
+    # Clone adguardhome from coolsnowwolf/luci
+    clone_folders "https://github.com/coolsnowwolf/luci" "openwrt-23.05" \
+        "applications/luci-app-adguardhome"
 fi
 
-if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
-    git_clone "https://github.com/ophub/luci-app-amlogic" "" "main" "luci-app-amlogic"
+git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
 
-    # 配置 amlogic 软件包
+# Flippy firmware specific (Amlogic toolbox)
+if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
+    git_sparse_clone main https://github.com/ophub/luci-app-amlogic luci-app-amlogic
+
+    # Configure amlogic package
     config_file="package/luci-app-amlogic/root/etc/config/amlogic"
     sed -i "s|option amlogic_firmware_repo.*|option amlogic_firmware_repo 'https://github.com/$GITHUB_REPOSITORY'|g" "$config_file"
     sed -i "s|option amlogic_firmware_tag.*|option amlogic_firmware_tag '$RELEASE_TAG'|g" "$config_file"
