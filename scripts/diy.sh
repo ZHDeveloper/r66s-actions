@@ -1,51 +1,51 @@
 #!/bin/bash
 set -e
 
-# 设置默认主题
+# Set default theme
 sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 
-# 通用配置函数
-configure_system() {
-    local firmware_type="$1"
-    local settings_file="package/lean/default-settings/files/zzz-default-settings"
-    local config_file="package/base-files/files/bin/config_generate"
+# Configure LEDE firmware
+if [ "$FIRMWARE_TYPE" = "LEDE" ]; then
+    if [ -f "package/lean/default-settings/files/zzz-default-settings" ]; then
+        # Set IP address to 192.168.100.1
+        sed -i 's/192.168.1.1/192.168.100.1/g' package/lean/default-settings/files/zzz-default-settings
 
-    # 设置默认密码 (password)
-    sed -i 's/root:::0:99999:7:::/root:$1$V4UetPzk$CYXluq4wUazHjmCDBCqXF.:0:0:99999:7:::/g' package/base-files/files/etc/shadow
+        # Ensure IP configuration exists
+        if ! grep -q "network.lan.ipaddr" package/lean/default-settings/files/zzz-default-settings; then
+            sed -i "2a uci set network.lan.ipaddr='192.168.100.1'" package/lean/default-settings/files/zzz-default-settings
+            sed -i "3a uci commit network" package/lean/default-settings/files/zzz-default-settings
+        fi
 
-    if [ "$firmware_type" = "LEDE" ]; then
-        [ -f "$settings_file" ] && {
-            sed -i 's/192.168.1.1/192.168.100.1/g' "$settings_file"
-            grep -q "network.lan.ipaddr" "$settings_file" || {
-                sed -i "2a uci set network.lan.ipaddr='192.168.100.1'" "$settings_file"
-                sed -i "3a uci commit network" "$settings_file"
-            }
-            grep -q "CST-8" "$settings_file" || {
-                echo "uci set system.@system[0].timezone='CST-8'" >> "$settings_file"
-                echo "uci set system.@system[0].zonename='Asia/Shanghai'" >> "$settings_file"
-                echo "uci commit system" >> "$settings_file"
-            }
-            sed -i "s/OpenWrt /OpenWrt $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" "$settings_file"
-        }
-    else
-        # ImmortalWrt 配置
-        sed -i 's/192.168.1.1/192.168.100.1/g' "$config_file"
-        sed -i 's/OpenWrt/ImmortalWrt/g' "$config_file"
-        sed -i "s/'UTC'/'CST-8'/g" "$config_file"
+        # Set timezone
+        if ! grep -q "CST-8" package/lean/default-settings/files/zzz-default-settings; then
+            echo "uci set system.@system[0].timezone='CST-8'" >> package/lean/default-settings/files/zzz-default-settings
+            echo "uci set system.@system[0].zonename='Asia/Shanghai'" >> package/lean/default-settings/files/zzz-default-settings
+            echo "uci commit system" >> package/lean/default-settings/files/zzz-default-settings
+        fi
 
-        cat >> "$config_file" << EOF
+        # Update banner
+        sed -i "s/OpenWrt /OpenWrt $(TZ=UTC-8 date "+%Y.%m.%d") @ OpenWrt /g" package/lean/default-settings/files/zzz-default-settings
+    fi
+else
+    # Configure ImmortalWrt firmware
+    sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/files/bin/config_generate
+    sed -i 's/OpenWrt/ImmortalWrt/g' package/base-files/files/bin/config_generate
+    sed -i "s/'UTC'/'CST-8'/g" package/base-files/files/bin/config_generate
+
+    # Add timezone configuration
+    cat >> package/base-files/files/bin/config_generate << EOF
 uci set system.@system[0].timezone='CST-8'
 uci set system.@system[0].zonename='Asia/Shanghai'
 uci commit system
 EOF
 
-        [ -f "$settings_file" ] && \
-            sed -i "s/OpenWrt /ImmortalWrt $(TZ=UTC-8 date "+%Y.%m.%d") @ ImmortalWrt /g" "$settings_file"
-    fi
+    # Update banner for ImmortalWrt
+    [ -f "package/lean/default-settings/files/zzz-default-settings" ] && \
+        sed -i "s/OpenWrt /ImmortalWrt $(TZ=UTC-8 date "+%Y.%m.%d") @ ImmortalWrt /g" package/lean/default-settings/files/zzz-default-settings
+fi
 
-    # 添加编译时间戳
-    echo "Built on $(TZ=UTC-8 date "+%Y-%m-%d %H:%M:%S")" >> package/base-files/files/etc/banner
-}
+# Set default password (password)
+sed -i 's/root:::0:99999:7:::/root:$1$V4UetPzk$CYXluq4wUazHjmCDBCqXF.:0:0:99999:7:::/g' package/base-files/files/etc/shadow
 
-# 执行配置
-configure_system "$FIRMWARE_TYPE"
+# Add build timestamp
+echo "Built on $(TZ=UTC-8 date "+%Y-%m-%d %H:%M:%S")" >> package/base-files/files/etc/banner
