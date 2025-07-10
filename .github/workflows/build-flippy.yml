@@ -156,15 +156,10 @@ jobs:
       if: env.PACKAGED_STATUS == 'success'
       run: |
         cd ${{ env.PACKAGED_OUTPUTPATH }}
-        ls -la
-        # 重命名固件文件，将 openwrt 替换为 matrix.name
-        for file in *openwrt*; do
-          if [ -f "$file" ]; then
-            new_name=$(echo "$file" | sed "s/openwrt/${{ matrix.name }}/g")
-            mv "$file" "$new_name"
-            echo "Renamed: $file -> $new_name"
-          fi
-        done
+
+        if [[ "${{ matrix.name }}" == 'ImmortalWrt' ]]; then
+          rename 's/openwrt/immortalwrt/' *
+        fi
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Generate release tag
