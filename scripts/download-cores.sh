@@ -12,9 +12,9 @@ agh_url=$(curl -s https://api.github.com/repos/AdguardTeam/AdGuardHome/releases/
 
 if [ -n "$agh_url" ] && download_file "$agh_url" "/tmp/agh.tar.gz"; then
     tar -xzf /tmp/agh.tar.gz -C /tmp/ && \
-    mkdir -p files/usr/bin && \
-    cp /tmp/AdGuardHome/AdGuardHome files/usr/bin/ && \
-    chmod +x files/usr/bin/AdGuardHome
+    mkdir -p files/usr/bin/AdGuardHome && \
+    cp /tmp/AdGuardHome/AdGuardHome files/usr/bin/AdGuardHome/ && \
+    chmod +x files/usr/bin/AdGuardHome/AdGuardHome
     rm -rf /tmp/agh.tar.gz /tmp/AdGuardHome
 fi
 
