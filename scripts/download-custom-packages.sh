@@ -30,10 +30,10 @@ clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 
 # Clone linkease packages
 git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
-git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-linkease
+# git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-linkease
 git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
-git_sparse_clone master https://github.com/linkease/nas-packages network/services/linkease
-git_sparse_clone master https://github.com/linkease/nas-packages network/services/linkmount
+# git_sparse_clone master https://github.com/linkease/nas-packages network/services/linkease
+# git_sparse_clone master https://github.com/linkease/nas-packages network/services/linkmount
 
 # sbwml/luci-app-mosdns
 find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
