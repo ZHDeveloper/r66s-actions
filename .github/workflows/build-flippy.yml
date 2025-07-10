@@ -151,27 +151,25 @@ jobs:
         KERNEL_VERSION_NAME: 6.6.y_6.12.y
         KERNEL_AUTO_LATEST: true
 
-    - name: Organize Files
-      id: organize
+    - name: Rename Firmware
+      id: rename
       if: env.PACKAGED_STATUS == 'success'
       run: |
-        df -hT
-        echo "==============================="
-        ls /workdir/openwrt/bin/targets/*/*
-        echo "==============================="
-        cd /workdir/openwrt/bin/targets/*/*
-        cat config.buildinfo
-        cp -rf /workdir/openwrt/bin/packages/* packages
-        tar -zcf packages.tar.gz packages
-        sleep 3s && rm -rf packages u-boot-qemu* sha256sums *.buildinfo *.manifest *.bin
-        sed '/^$/d' /workdir/openwrt/.config >config.txt
-        echo "FIRMWARE_PATH=$PWD" >>$GITHUB_ENV
-        cd ${{ env.PACKAGED_OUTPUTPATH }} && rm -f *rootfs.tar.gz *.sha
+        cd ${{ env.PACKAGED_OUTPUTPATH }}
+        ls -la
+        # 重命名固件文件，将 openwrt 替换为 matrix.name
+        for file in *openwrt*; do
+          if [ -f "$file" ]; then
+            new_name=$(echo "$file" | sed "s/openwrt/${{ matrix.name }}/g")
+            mv "$file" "$new_name"
+            echo "Renamed: $file -> $new_name"
+          fi
+        done
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Generate release tag
       id: tag
-      if: steps.organize.outputs.status == 'success'
+      if: steps.rename.outputs.status == 'success'
       run: |
         touch release.txt
         echo "📦 ${{ matrix.name }} R66S 固件" >> release.txt
