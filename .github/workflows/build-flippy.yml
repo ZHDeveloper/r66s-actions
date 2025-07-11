@@ -89,7 +89,7 @@ jobs:
     - name: Cache Toolchain
       run: |
         chmod +x scripts/*.sh
-        $GITHUB_WORKSPACE/scripts/package-toolchain.sh
+        $GITHUB_WORKSPACE/scripts/toolchain.sh
 
     - name: Load custom configuration
       run: |
@@ -109,7 +109,7 @@ jobs:
       run: |
         cd openwrt
         make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
-        $GITHUB_WORKSPACE/scripts/package-toolchain.sh
+        $GITHUB_WORKSPACE/scripts/toolchain.sh
 
     - name: Delete Old Toolchain
       if: steps.toolchain.conclusion == 'success'
