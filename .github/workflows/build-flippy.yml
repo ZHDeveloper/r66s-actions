@@ -29,6 +29,7 @@ jobs:
 
     env:
       CONFIG_FILE: configs/r66s-flippy.config
+      EXTRA_CONFIG: configs/extra.config
       FIRMWARE_TYPE: ${{ matrix.name }}
       RELEASE_TAG: ARMv8-${{ matrix.name }}
 
@@ -92,8 +93,11 @@ jobs:
 
     - name: Load custom configuration
       run: |
-        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
         cd openwrt
+        # 加载主配置文件
+        [ -e "$GITHUB_WORKSPACE/$CONFIG_FILE" ] && cat "$GITHUB_WORKSPACE/$CONFIG_FILE" >> .config
+        # 加载额外配置文件
+        [ -e "$GITHUB_WORKSPACE/$EXTRA_CONFIG" ] && cat "$GITHUB_WORKSPACE/$EXTRA_CONFIG" >> .config
         $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
         $GITHUB_WORKSPACE/scripts/download-cores.sh
         $GITHUB_WORKSPACE/scripts/diy.sh
