@@ -1,0 +1,60 @@
+# OpenWrt build artifacts
+/openwrt/
+/lede/
+
+# Build directories
+bin/
+build_dir/
+staging_dir/
+tmp/
+logs/
+dl/
+
+# Configuration backup
+*.orig
+*.bak
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+
+# Package files
+*.deb
+*.rpm
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.zip
+
+# SSH keys and secrets
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Cache directories
+.cache/
+node_modules/
