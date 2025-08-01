@@ -26,7 +26,7 @@ mkdir -p package
 # Clone common packages
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
-# clone_package "https://github.com/linkease/istore" "package/luci-app-store"
+clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 
 # Clone linkease packages
 git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto

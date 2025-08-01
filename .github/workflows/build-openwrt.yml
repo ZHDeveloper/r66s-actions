@@ -30,7 +30,7 @@ jobs:
       CONFIG_FILE: ${{ matrix.name == 'LEDE' && 'configs/r66s-lede.config' || 'configs/r66s-immortalwrt.config' }}
       EXTRA_CONFIG: configs/extra.config
       FIRMWARE_TYPE: ${{ matrix.name }}
-      RELEASE_TAG: ${{ matrix.name }}_R66S
+      RELEASE_TAG: ${{ matrix.name }}-R66S
 
     steps:
     - name: Checkout
