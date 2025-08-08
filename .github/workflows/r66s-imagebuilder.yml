@@ -190,64 +190,14 @@ jobs:
       run: |
         # 生成构建信息
         cat > info.md << EOF
-        # 📦 ImmortalWrt R66S 固件
+        # ImmortalWrt R66S 固件
         
-        ## 🏷️ 构建信息
+        ## 构建信息
         - **版本**: ImmortalWrt ${{ github.event.inputs.version }}
-        - **设备**: FastRhino R66S (RK3568)
+        - **设备**: FastRhino R66S
         - **构建时间**: ${{ env.BUILD_DATE }}
-        - **构建方式**: Docker ImageBuilder
         - **根文件系统大小**: ${{ github.event.inputs.rootfs_partsize }}MB
-        
-        ## 📋 功能配置
-        - **Docker 支持**: ${{ github.event.inputs.include_docker == 'yes' && '✅ 已启用' || '❌ 未启用' }}
-        
-        ## 🌐 网络代理 (默认启用)
-        - **Passwall**: ✅ 已启用
-        - **OpenClash**: ✅ 已启用
-        
-        ## 🛡️ DNS 服务 (默认启用)
-        - **AdGuard Home**: ✅ 已启用
-        - **MosDNS**: ✅ 已启用
-        
-        ## 🛠️ 基础功能
-        - **LuCI 管理界面**: ✅ 已启用 (Argon 主题)
-        - **SSH/SFTP**: ✅ 已启用
-        - **防火墙**: ✅ 已启用 (firewall4)
-        - **DHCP/DNS**: ✅ 已启用
-        - **UPnP**: ✅ 已启用
-        - **DDNS**: ✅ 已启用
-        - **文件传输**: ✅ 已启用
-        - **终端工具**: ✅ 已启用 (ttyd)
-        - **自动重启**: ✅ 已启用
-        
-        ## 🔧 默认配置
-        - **管理界面**: http://192.168.100.1
-        - **用户名**: root
-        - **密码**: password
-        - **SSH**: 端口 22 (默认开启)
-        
-        ## 💡 使用说明
-        1. 下载对应的固件文件 (.img.gz)
-        2. 解压固件文件: \`gunzip *.img.gz\`
-        3. 使用 dd 命令刷写到 SD 卡或 eMMC:
-           \`\`\`bash
-           sudo dd if=firmware.img of=/dev/sdX bs=1M status=progress
-           \`\`\`
-        4. 插入设备启动，通过网线连接
-        5. 浏览器访问 http://192.168.100.1 进入管理界面
-        
-        ## ⚠️ 注意事项
-        - 刷机有风险，请确保设备型号匹配
-        - 建议先备份原厂固件
-        - 首次启动可能需要等待 2-3 分钟
-        - 如遇问题请检查设备兼容性和网络连接
-        
-        ## 📁 固件文件
-        $(find release -name "*.img.gz" -o -name "*.bin" -o -name "*.img" | while read file; do
-          size=$(ls -lh "$file" | awk '{print $5}')
-          echo "- $(basename "$file") ($size)"
-        done)
+        - **Docker 支持**: ${{ github.event.inputs.include_docker == 'yes' && '已启用' || '未启用' }}
         EOF
 
     - name: Upload firmware to release
