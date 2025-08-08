@@ -53,12 +53,12 @@ build_package_list() {
     PACKAGES="$PACKAGES odhcp6c odhcpd-ipv6only opkg ppp ppp-mod-pppoe procd procd-seccomp procd-ujail"
     PACKAGES="$PACKAGES uci uclient-fetch urandom-seed urngd"
     
-    # LuCI 基础
-    PACKAGES="$PACKAGES luci luci-ssl-openssl luci-theme-bootstrap"
+    # LuCI 基础 (使用 mbedtls 避免 SSL 库冲突)
+    PACKAGES="$PACKAGES luci luci-ssl luci-theme-bootstrap"
     
     # 常用工具
     PACKAGES="$PACKAGES curl wget nano htop iperf3 tcpdump ethtool"
-    PACKAGES="$PACKAGES kmod-usb-storage kmod-usb2 kmod-usb3 block-mount"
+    PACKAGES="$PACKAGES kmod-usb-storage block-mount"
     
     # 网络工具
     PACKAGES="$PACKAGES iptables-mod-tproxy iptables-mod-extra ipset"
@@ -70,26 +70,20 @@ build_package_list() {
     # 系统工具
     PACKAGES="$PACKAGES luci-app-ttyd ttyd"
     PACKAGES="$PACKAGES luci-app-autoreboot"
-    PACKAGES="$PACKAGES luci-app-filetransfer"
     
-    # 网络服务
-    PACKAGES="$PACKAGES luci-app-upnp miniupnpd"
-    PACKAGES="$PACKAGES luci-app-ddns ddns-scripts"
     
     # Docker 支持
     if [ "$INCLUDE_DOCKER" = "yes" ]; then
         log_info "添加 Docker 支持..."
         PACKAGES="$PACKAGES docker dockerd luci-app-dockerman"
         PACKAGES="$PACKAGES cgroupfs-mount containerd runc tini"
-        PACKAGES="$PACKAGES kmod-veth kmod-bridge kmod-br-netfilter"
+        PACKAGES="$PACKAGES kmod-veth kmod-br-netfilter"
     fi
     
     # Passwall (默认启用)
     log_info "添加 Passwall..."
     PACKAGES="$PACKAGES luci-app-passwall"
     PACKAGES="$PACKAGES xray-core v2ray-geoip v2ray-geosite"
-    PACKAGES="$PACKAGES shadowsocks-libev-ss-local shadowsocks-libev-ss-redir"
-    PACKAGES="$PACKAGES simple-obfs v2ray-plugin"
     
     # OpenClash (默认启用)
     log_info "添加 OpenClash..."
@@ -98,13 +92,13 @@ build_package_list() {
     PACKAGES="$PACKAGES ipset ip-full iptables-mod-tproxy iptables-mod-extra"
     PACKAGES="$PACKAGES libcap libcap-bin ruby ruby-yaml kmod-tun"
     
-    # AdGuard Home (默认启用)
+    # AdGuard Home (默认启用) - 简化安装
     log_info "添加 AdGuard Home..."
-    PACKAGES="$PACKAGES luci-app-adguardhome adguardhome"
+    PACKAGES="$PACKAGES luci-app-adguardhome"
     
-    # MosDNS (默认启用)
+    # MosDNS (默认启用) - 简化安装
     log_info "添加 MosDNS..."
-    PACKAGES="$PACKAGES luci-app-mosdns mosdns"
+    PACKAGES="$PACKAGES luci-app-mosdns"
     
     # 清理重复包
     PACKAGES=$(echo $PACKAGES | tr ' ' '\n' | sort -u | tr '\n' ' ')
@@ -179,19 +173,23 @@ build_firmware() {
         log_step "构建日志 (最后 50 行):"
         tail -50 build.log 2>/dev/null || echo "无法读取构建日志"
         
-        # 尝试使用最小包集合重新构建
-        log_warn "尝试使用最小包集合重新构建..."
-        MINIMAL_PACKAGES="luci luci-ssl-openssl luci-theme-bootstrap curl wget nano"
+        # 尝试使用核心包集合重新构建
+        log_warn "尝试使用核心包集合重新构建..."
+        CORE_PACKAGES="luci luci-ssl luci-theme-bootstrap"
+        CORE_PACKAGES="$CORE_PACKAGES curl wget nano htop"
+        CORE_PACKAGES="$CORE_PACKAGES luci-app-ttyd ttyd"
+        CORE_PACKAGES="$CORE_PACKAGES luci-app-passwall xray-core"
+        CORE_PACKAGES="$CORE_PACKAGES luci-app-openclash"
         
-        if timeout 1800 make image PROFILE="$PROFILE" PACKAGES="$MINIMAL_PACKAGES" V=s; then
-            log_warn "⚠️ 使用最小包集合构建成功"
+        if timeout 1800 make image PROFILE="$PROFILE" PACKAGES="$CORE_PACKAGES" V=s; then
+            log_warn "⚠️ 使用核心包集合构建成功"
             return 0
         else
-            log_error "❌ 最小包集合构建也失败"
+            log_error "❌ 核心包集合构建也失败"
             
             # 最后尝试：只用基础包
             log_warn "最后尝试：只使用基础包..."
-            BASIC_PACKAGES="luci"
+            BASIC_PACKAGES="luci luci-ssl luci-theme-bootstrap"
             
             if timeout 1200 make image PROFILE="$PROFILE" PACKAGES="$BASIC_PACKAGES"; then
                 log_warn "⚠️ 基础包构建成功"

@@ -19,7 +19,7 @@ on:
       include_docker:
         description: '是否包含 Docker 支持'
         required: true
-        default: 'yes'
+        default: 'no'
         type: choice
         options:
           - 'yes'
