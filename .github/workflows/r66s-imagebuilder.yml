@@ -1,0 +1,275 @@
+name: Build R66S Firmware with ImageBuilder
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'ImmortalWrt 版本'
+        required: true
+        default: '24.10'
+        type: choice
+        options:
+          - '24.10'
+          - '23.05'
+      rootfs_partsize:
+        description: '设置根文件系统分区大小 (MB)'
+        required: true
+        default: '1024'
+        type: string
+      include_docker:
+        description: '是否包含 Docker 支持'
+        required: true
+        default: 'yes'
+        type: choice
+        options:
+          - 'yes'
+          - 'no'
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Set up environment variables
+      run: |
+        echo "IMMORTALWRT_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+        echo "RELEASE_TAG=ImmortalWrt-${{ github.event.inputs.version }}-R66S-$(date +%Y%m%d)" >> $GITHUB_ENV
+        echo "BUILD_DATE=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_ENV
+
+    - name: Free up disk space
+      run: |
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo apt-get autoremove --purge
+        sudo apt-get clean
+        df -h
+
+    - name: Prepare build directories
+      run: |
+        mkdir -p bin release
+        chmod 755 bin release
+
+    - name: Validate build parameters
+      run: |
+        echo "🔍 验证构建参数..."
+        
+        # 验证根文件系统大小
+        if ! [[ "${{ github.event.inputs.rootfs_partsize }}" =~ ^[0-9]+$ ]]; then
+          echo "❌ 错误: 根文件系统大小必须是数字"
+          exit 1
+        fi
+        
+        if [ "${{ github.event.inputs.rootfs_partsize }}" -lt 512 ]; then
+          echo "⚠️ 警告: 根文件系统大小小于 512MB，可能导致空间不足"
+        fi
+        
+        if [ "${{ github.event.inputs.rootfs_partsize }}" -gt 4096 ]; then
+          echo "⚠️ 警告: 根文件系统大小大于 4GB，可能不必要"
+        fi
+        
+        echo "✅ 参数验证通过"
+
+    - name: Set executable permissions
+      run: chmod +x ${{ github.workspace }}/scripts/imagebuilder.sh
+
+    - name: Build firmware with ImageBuilder
+      run: |
+        # 根据版本确定正确的 Docker 镜像标签
+        if [ "${{ github.event.inputs.version }}" = "24.10" ]; then
+          DOCKER_TAG="rockchip-armv8-openwrt-24.10.2"
+          PROFILE="lunzn_fastrhino-r66s"
+        else
+          DOCKER_TAG="rockchip-armv8-openwrt-23.05.4"
+          PROFILE="lunzn_fastrhino-r66s"
+        fi
+        
+        echo "🐳 使用 Docker 镜像: immortalwrt/imagebuilder:$DOCKER_TAG"
+        echo "🎯 使用 Profile: $PROFILE"
+        echo "📦 构建配置:"
+        echo "  - 版本: ${{ github.event.inputs.version }}"
+        echo "  - 根文件系统: ${{ github.event.inputs.rootfs_partsize }}MB"
+        echo "  - Docker: ${{ github.event.inputs.include_docker }}"
+        echo "  - Passwall: ✅ 默认启用"
+        echo "  - OpenClash: ✅ 默认启用"
+        echo "  - AdGuard Home: ✅ 默认启用"
+        echo "  - MosDNS: ✅ 默认启用"
+        
+        # 拉取 Docker 镜像
+        docker pull immortalwrt/imagebuilder:$DOCKER_TAG
+        
+        # 使用 Docker 运行 ImageBuilder
+        docker run --rm -i \
+          --user root \
+          -v "${{ github.workspace }}/bin:/home/build/immortalwrt/bin" \
+          -v "${{ github.workspace }}/scripts/imagebuilder.sh:/home/build/immortalwrt/build.sh" \
+          -e PROFILE="$PROFILE" \
+          -e ROOTFS_PARTSIZE="${{ github.event.inputs.rootfs_partsize }}" \
+          -e INCLUDE_DOCKER="${{ github.event.inputs.include_docker }}" \
+          immortalwrt/imagebuilder:$DOCKER_TAG \
+          /bin/bash /home/build/immortalwrt/build.sh
+
+    - name: Check build results
+      id: check
+      run: |
+        echo "🔍 检查构建结果..."
+        
+        # 检查是否有固件文件生成
+        firmware_files=$(find bin/targets -name '*.img.gz' -o -name '*.bin' -o -name '*.img' 2>/dev/null)
+        
+        if [ -n "$firmware_files" ]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "✅ 构建完成！"
+          echo ""
+          echo "📁 生成的固件文件:"
+          
+          total_size=0
+          file_count=0
+          
+          echo "$firmware_files" | while read file; do
+            if [ -f "$file" ]; then
+              size_bytes=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo "0")
+              size_human=$(ls -lh "$file" | awk '{print $5}')
+              echo "  📦 $(basename "$file") ($size_human)"
+              
+              # 验证文件完整性
+              if [ "$size_bytes" -gt 10485760 ]; then  # 大于 10MB
+                echo "    ✅ 文件大小正常"
+              else
+                echo "    ⚠️ 文件可能过小"
+              fi
+            fi
+          done
+          
+          echo ""
+          echo "🎯 构建配置摘要:"
+          echo "  - ImmortalWrt 版本: ${{ github.event.inputs.version }}"
+          echo "  - 根文件系统: ${{ github.event.inputs.rootfs_partsize }}MB"
+          echo "  - Docker: ${{ github.event.inputs.include_docker }}"
+          echo "  - Passwall: ✅ 默认启用"
+          echo "  - OpenClash: ✅ 默认启用"
+          echo "  - AdGuard Home: ✅ 默认启用"
+          echo "  - MosDNS: ✅ 默认启用"
+          
+        else
+          echo "status=failed" >> $GITHUB_OUTPUT
+          echo "❌ 构建失败 - 没有生成固件文件"
+          echo ""
+          echo "🔍 调试信息:"
+          echo "bin 目录结构:"
+          find bin -type f 2>/dev/null | head -20 || echo "bin 目录不存在或为空"
+          echo ""
+          echo "Docker 容器可能的错误日志:"
+          docker logs $(docker ps -lq) 2>/dev/null | tail -50 || echo "无法获取容器日志"
+          exit 1
+        fi
+
+    - name: Organize firmware files
+      if: steps.check.outputs.status == 'success'
+      run: |
+        mkdir -p release
+        
+        # 复制并重命名固件文件
+        find bin/targets -name "*.img.gz" -o -name "*.bin" -o -name "*.img" | while read file; do
+          filename=$(basename "$file")
+          new_name="ImmortalWrt-${{ github.event.inputs.version }}-R66S-$(date +%Y%m%d)-${filename}"
+          cp "$file" "release/$new_name"
+          echo "生成: $new_name"
+        done
+        
+        echo "=== 发布文件列表 ==="
+        ls -la release/
+        echo "=================="
+
+    - name: Generate release info
+      if: steps.check.outputs.status == 'success'
+      run: |
+        # 生成构建信息
+        cat > info.md << EOF
+        # 📦 ImmortalWrt R66S 固件
+        
+        ## 🏷️ 构建信息
+        - **版本**: ImmortalWrt ${{ github.event.inputs.version }}
+        - **设备**: FastRhino R66S (RK3568)
+        - **构建时间**: ${{ env.BUILD_DATE }}
+        - **构建方式**: Docker ImageBuilder
+        - **根文件系统大小**: ${{ github.event.inputs.rootfs_partsize }}MB
+        
+        ## 📋 功能配置
+        - **Docker 支持**: ${{ github.event.inputs.include_docker == 'yes' && '✅ 已启用' || '❌ 未启用' }}
+        
+        ## 🌐 网络代理 (默认启用)
+        - **Passwall**: ✅ 已启用
+        - **OpenClash**: ✅ 已启用
+        
+        ## 🛡️ DNS 服务 (默认启用)
+        - **AdGuard Home**: ✅ 已启用
+        - **MosDNS**: ✅ 已启用
+        
+        ## 🛠️ 基础功能
+        - **LuCI 管理界面**: ✅ 已启用 (Argon 主题)
+        - **SSH/SFTP**: ✅ 已启用
+        - **防火墙**: ✅ 已启用 (firewall4)
+        - **DHCP/DNS**: ✅ 已启用
+        - **UPnP**: ✅ 已启用
+        - **DDNS**: ✅ 已启用
+        - **文件传输**: ✅ 已启用
+        - **终端工具**: ✅ 已启用 (ttyd)
+        - **自动重启**: ✅ 已启用
+        
+        ## 🔧 默认配置
+        - **管理界面**: http://192.168.100.1
+        - **用户名**: root
+        - **密码**: password
+        - **SSH**: 端口 22 (默认开启)
+        
+        ## 💡 使用说明
+        1. 下载对应的固件文件 (.img.gz)
+        2. 解压固件文件: \`gunzip *.img.gz\`
+        3. 使用 dd 命令刷写到 SD 卡或 eMMC:
+           \`\`\`bash
+           sudo dd if=firmware.img of=/dev/sdX bs=1M status=progress
+           \`\`\`
+        4. 插入设备启动，通过网线连接
+        5. 浏览器访问 http://192.168.100.1 进入管理界面
+        
+        ## ⚠️ 注意事项
+        - 刷机有风险，请确保设备型号匹配
+        - 建议先备份原厂固件
+        - 首次启动可能需要等待 2-3 分钟
+        - 如遇问题请检查设备兼容性和网络连接
+        
+        ## 📁 固件文件
+        $(find release -name "*.img.gz" -o -name "*.bin" -o -name "*.img" | while read file; do
+          size=$(ls -lh "$file" | awk '{print $5}')
+          echo "- $(basename "$file") ($size)"
+        done)
+        EOF
+
+    - name: Upload firmware to release
+      if: steps.check.outputs.status == 'success'
+      uses: softprops/action-gh-release@v2.2.1
+      with:
+        tag_name: ${{ env.RELEASE_TAG }}
+        name: "ImmortalWrt ${{ github.event.inputs.version }} for R66S - $(date +'%Y%m%d')"
+        body_path: info.md
+        files: release/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Clean up old releases
+      if: always()
+      run: |
+        # 保留最新的 5 个 release，删除旧的
+        gh release list --limit 20 --json tagName,createdAt | \
+        jq -r '.[] | select(.tagName | contains("ImmortalWrt") and contains("R66S")) | .tagName' | \
+        tail -n +6 | \
+        xargs -I {} gh release delete {} --yes 2>/dev/null || true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
