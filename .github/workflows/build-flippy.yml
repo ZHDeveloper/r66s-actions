@@ -146,11 +146,11 @@ jobs:
     - name: Packaging OpenWrt
       id: package_flippy
       if: steps.compile.conclusion == 'success'
-      uses: ophub/flippy-openwrt-actions@main
+      uses: unifreq/openwrt_packit@master
       env:
         OPENWRT_ARMSR: openwrt/bin/targets/*/*/*rootfs.tar.gz
         PACKAGE_SOC: s905d_r66s
-        KERNEL_VERSION_NAME: 6.1.y_6.6.y
+        KERNEL_VERSION_NAME: 6.6.y_6.12.y
         KERNEL_AUTO_LATEST: true
 
     - name: Rename Firmware
