@@ -28,9 +28,6 @@ clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/xiaorouji/openwrt-passwall" "package/luci-app-passwall"
 # clone_package "https://github.com/linkease/istore" "package/luci-app-store"
 
-# Clone luci-app-partexp (Partition expansion and auto-mount plugin)
-clone_package "https://github.com/sirpdboy/luci-app-partexp" "package/luci-app-partexp"
-
 # Clone linkease packages
 git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
 # git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-linkease
