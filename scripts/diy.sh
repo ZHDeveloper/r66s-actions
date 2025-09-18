@@ -10,12 +10,6 @@ if [ -f "package/base-files/luci2/bin/config_generate" ]; then
     sed -i 's/192.168.1.1/192.168.100.1/g' package/base-files/luci2/bin/config_generate
 fi
 
-# 设置默认主机名为 R66S
-sed -i "s/hostname='.*'/hostname='R66S'/g" package/base-files/files/bin/config_generate
-if [ -f "package/base-files/luci2/bin/config_generate" ]; then
-    sed -i "s/hostname='.*'/hostname='R66S'/g" package/base-files/luci2/bin/config_generate
-fi
-
 # Set default password (password)
 sed -i 's/root:::0:99999:7:::/root:$1$V4UetPzk$CYXluq4wUazHjmCDBCqXF.:0:0:99999:7:::/g' package/base-files/files/etc/shadow
 

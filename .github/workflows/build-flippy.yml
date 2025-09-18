@@ -20,7 +20,7 @@ jobs:
         include:
           - name: ImmortalWrt
             repo_url: https://github.com/immortalwrt/immortalwrt
-            repo_branch: openwrt-23.05
+            repo_branch: master
           - name: LEDE
             repo_url: https://github.com/coolsnowwolf/lede
             repo_branch: master
