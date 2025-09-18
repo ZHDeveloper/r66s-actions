@@ -146,7 +146,7 @@ jobs:
     - name: Packaging OpenWrt
       id: package_flippy
       if: steps.compile.conclusion == 'success'
-      uses: unifreq/openwrt_packit@master
+      uses: ophub/flippy-openwrt-actions@main
       env:
         OPENWRT_ARMSR: openwrt/bin/targets/*/*/*rootfs.tar.gz
         PACKAGE_SOC: s905d_r66s
