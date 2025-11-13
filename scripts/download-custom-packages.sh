@@ -47,7 +47,7 @@ rm -rf feeds/luci/applications/luci-app-passwall
 
 clone_package "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
 clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
-clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "25.x"
+clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang"
 
 # ImmortalWrt specific packages
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
