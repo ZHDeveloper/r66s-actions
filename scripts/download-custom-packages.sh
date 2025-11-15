@@ -54,7 +54,7 @@ if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
     # Clone adguardhome from coolsnowwolf/luci
     git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
     # Clone nikki (Mihomo transparent proxy)
-    git_sparse_clone main https://github.com/nikkinikki-org/OpenWrt-nikki luci-app-nikki nikki
+    # git_sparse_clone main https://github.com/nikkinikki-org/OpenWrt-nikki luci-app-nikki nikki
 fi
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
