@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# Configure git to use GITHUB_TOKEN for HTTPS authentication
+if [ -n "$GITHUB_TOKEN" ]; then
+    git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+fi
+
+
 # Sparse clone function
 git_sparse_clone() {
     local branch="$1" repourl="$2"

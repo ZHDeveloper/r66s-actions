@@ -116,6 +116,8 @@ jobs:
         $GITHUB_WORKSPACE/scripts/toolchain.sh
 
     - name: Load custom configuration
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         cd openwrt
         [ -e "$GITHUB_WORKSPACE/$CONFIG_FILE" ] && cat "$GITHUB_WORKSPACE/$CONFIG_FILE" >> .config
