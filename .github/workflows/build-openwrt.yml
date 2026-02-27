@@ -19,17 +19,37 @@ jobs:
       matrix:
         include:
           - name: ImmortalWrt
+            build_type: r66s
             repo_url: https://github.com/immortalwrt/immortalwrt
             repo_branch: openwrt-24.10
           - name: LEDE
+            build_type: r66s
+            repo_url: https://github.com/coolsnowwolf/lede
+            repo_branch: master
+          - name: ImmortalWrt
+            build_type: flippy
+            repo_url: https://github.com/immortalwrt/immortalwrt
+            repo_branch: openwrt-24.10
+          - name: LEDE
+            build_type: flippy
             repo_url: https://github.com/coolsnowwolf/lede
             repo_branch: master
 
     env:
-      CONFIG_FILE: ${{ matrix.name == 'LEDE' && 'configs/r66s-lede.config' || 'configs/r66s-immortalwrt.config' }}
-      EXTRA_CONFIG: configs/extra.config
+      BUILD_TYPE: ${{ matrix.build_type }}
       FIRMWARE_TYPE: ${{ matrix.name }}
-      RELEASE_TAG: ${{ matrix.name }}-R66S
+      EXTRA_CONFIG: configs/extra.config
+      CONFIG_FILE: >-
+        ${{
+          matrix.build_type == 'flippy' && 'configs/r66s-flippy.config' ||
+          matrix.name == 'LEDE' && 'configs/r66s-lede.config' ||
+          'configs/r66s-immortalwrt.config'
+        }}
+      RELEASE_TAG: >-
+        ${{
+          matrix.build_type == 'flippy' && format('ARMv8-{0}', matrix.name) ||
+          format('{0}-R66S', matrix.name)
+        }}
 
     steps:
     - name: Checkout
@@ -37,25 +57,9 @@ jobs:
 
     - name: Free Disk Space
       run: |
-        sudo swapoff -a
-        sudo rm -f /swapfile /mnt/swapfile
-        docker rmi $(docker images -q) 2>/dev/null || true
-        sudo rm -rf \
-          /usr/share/dotnet \
-          /usr/local/lib/android \
-          /opt/ghc \
-          /opt/hostedtoolcache/CodeQL \
-          /usr/local/share/boost \
-          /usr/lib/jvm \
-          /usr/lib/mono \
-          /usr/share/swift \
-          /usr/local/julia* \
-          "$AGENT_TOOLSDIRECTORY"
-        sudo -E apt-get -qq purge \
-          azure-cli ghc* zulu* llvm* firefox google* dotnet* powershell openjdk* \
-          mongodb* moby* || true
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
+        docker rmi -f $(docker images -q) 2>/dev/null || true
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android $AGENT_TOOLSDIRECTORY
+        sudo swapoff -a && sudo rm -f /swapfile /mnt/swapfile
         df -hT
 
     - name: Initialization environment
@@ -78,21 +82,21 @@ jobs:
 
     - name: Combine Disks
       run: |
-        MNT_SIZE=$((($(df --block-size=1024 --output=avail /mnt | tail -1) - 1024*1024*1) * 1024))
-        ROOT_SIZE=$((($(df --block-size=1024 --output=avail / | tail -1) - 1024*1024*4) * 1024))
-        sudo fallocate -l $MNT_SIZE /mnt/mnt.img
-        sudo fallocate -l $ROOT_SIZE /root.img
-        MNT_NAME=$(sudo losetup -Pf --show /mnt/mnt.img)
-        ROOT_NAME=$(sudo losetup -Pf --show /root.img)
-        sudo pvcreate -f $MNT_NAME $ROOT_NAME
-        sudo vgcreate actions $MNT_NAME $ROOT_NAME
-        sudo lvcreate -n disk -l 100%FREE actions
-        LV_NAME=$(sudo lvscan | awk -F "'" '{print $2}')
-        sudo mkfs.btrfs -L combinedisk $LV_NAME
+        if mountpoint -q /mnt; then
+          mnt_size=$(($(df -k --output=avail /mnt | tail -1) / 1024 - 1024))
+          sudo truncate -s ${mnt_size}M /mnt/mnt.img
+          loop_mnt=$(sudo losetup -f --show /mnt/mnt.img)
+        fi
+        root_size=$(($(df -k --output=avail / | tail -1) / 1024 - 4096))
+        sudo truncate -s ${root_size}M /root.img
+        loop_root=$(sudo losetup -f --show /root.img)
+        sudo pvcreate -f $loop_mnt $loop_root
+        sudo vgcreate github $loop_mnt $loop_root
+        sudo lvcreate -n runner -l 100%FREE github
+        sudo mkfs.btrfs -f /dev/github/runner
         sudo mkdir -p /workdir
-        sudo mount -o compress=zstd $LV_NAME /workdir
-        sudo chown -R runner:runner /workdir
-        df -hT
+        sudo mount -o compress=zstd /dev/github/runner /workdir
+        sudo chown -R runner:runner /workdir && df -hT
 
     - name: Clone source code
       working-directory: /workdir
@@ -114,9 +118,7 @@ jobs:
     - name: Load custom configuration
       run: |
         cd openwrt
-        # 加载主配置文件
         [ -e "$GITHUB_WORKSPACE/$CONFIG_FILE" ] && cat "$GITHUB_WORKSPACE/$CONFIG_FILE" >> .config
-        # 加载额外配置文件
         [ -e "$GITHUB_WORKSPACE/$EXTRA_CONFIG" ] && cat "$GITHUB_WORKSPACE/$EXTRA_CONFIG" >> .config
         $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
         $GITHUB_WORKSPACE/scripts/download-cores.sh
@@ -165,20 +167,20 @@ jobs:
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
 
+    # ── r66s 直刷固件流程 ──────────────────────────────────────────
     - name: Organize files
       id: organize
-      if: steps.compile.outputs.status == 'success'
+      if: steps.compile.outputs.status == 'success' && env.BUILD_TYPE == 'r66s'
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
-    - name: Generate release tag
-      id: tag
+    - name: Generate release tag (r66s)
+      id: tag_r66s
       if: steps.organize.outputs.status == 'success'
       run: |
-        echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
         touch release.txt
         echo "📦 ${{ matrix.name }} R66S 固件" >> release.txt
         echo "🕐 编译时间: $(date '+%Y-%m-%d %H:%M:%S')" >> release.txt
@@ -186,21 +188,69 @@ jobs:
         echo "🎯 支持设备: FastRhino R66S (RK3568)" >> release.txt
         echo "status=success" >> $GITHUB_OUTPUT
 
-    - name: Upload firmware to release
+    - name: Upload firmware to release (r66s)
+      if: steps.tag_r66s.outputs.status == 'success'
       uses: softprops/action-gh-release@v2
-      if: steps.tag.outputs.status == 'success' && steps.organize.outputs.status == 'success'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ steps.tag.outputs.release_tag }}
+        tag_name: ${{ env.RELEASE_TAG }}
         body_path: release.txt
         files: ${{ env.FIRMWARE }}/*
 
+    # ── flippy ARMv8 打包流程 ──────────────────────────────────────
+    - name: Packaging OpenWrt (flippy)
+      id: package_flippy
+      if: steps.compile.outputs.status == 'success' && env.BUILD_TYPE == 'flippy'
+      uses: ophub/flippy-openwrt-actions@main
+      env:
+        OPENWRT_ARMSR: openwrt/bin/targets/*/*/*rootfs.tar.gz
+        PACKAGE_SOC: s905d_r66s
+        KERNEL_VERSION_NAME: 6.6.y_6.12.y
+        KERNEL_AUTO_LATEST: true
+
+    - name: Rename Firmware (flippy)
+      id: rename
+      if: env.PACKAGED_STATUS == 'success' && env.BUILD_TYPE == 'flippy'
+      run: |
+        cd ${{ env.PACKAGED_OUTPUTPATH }}
+        for file in *openwrt*; do
+          [ -f "$file" ] || continue
+          new_name=$(echo "$file" | sed "s/openwrt/${{ matrix.name }}/g")
+          mv "$file" "$new_name"
+          echo "Renamed: $file -> $new_name"
+        done
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Generate release tag (flippy)
+      id: tag_flippy
+      if: steps.rename.outputs.status == 'success'
+      run: |
+        touch release.txt
+        echo "📦 ${{ matrix.name }} ARMv8 固件" >> release.txt
+        echo "🕐 编译时间: $(date '+%Y-%m-%d %H:%M:%S')" >> release.txt
+        echo "🌿 源码分支: ${{ matrix.repo_branch }}" >> release.txt
+        echo "🎯 支持设备: FastRhino R66S / ARMv8" >> release.txt
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Upload firmware to release (flippy)
+      if: steps.tag_flippy.outputs.status == 'success'
+      uses: ncipollo/release-action@main
+      with:
+        name: ${{ env.RELEASE_TAG }}
+        allowUpdates: true
+        removeArtifacts: true
+        tag: ${{ env.RELEASE_TAG }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+        artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
+        bodyFile: release.txt
+
+    # ── 清理 ──────────────────────────────────────────────────────
     - name: Cleanup
       if: always()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         gh run list --workflow="build-openwrt.yml" --limit 50 --json databaseId --jq '.[10:][].databaseId' | xargs -I {} gh run delete {} 2>/dev/null || true
         gh run list --workflow="build-openwrt.yml" --status failure --limit 20 --json databaseId --jq '.[].databaseId' | xargs -I {} gh run delete {} 2>/dev/null || true
         gh run list --workflow="build-openwrt.yml" --status cancelled --limit 20 --json databaseId --jq '.[].databaseId' | xargs -I {} gh run delete {} 2>/dev/null || true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
