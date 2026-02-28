@@ -122,7 +122,7 @@ jobs:
         cd openwrt
         [ -e "$GITHUB_WORKSPACE/$CONFIG_FILE" ] && cat "$GITHUB_WORKSPACE/$CONFIG_FILE" >> .config
         [ -e "$GITHUB_WORKSPACE/$EXTRA_CONFIG" ] && cat "$GITHUB_WORKSPACE/$EXTRA_CONFIG" >> .config
-        $GITHUB_WORKSPACE/scripts/download-custom-packages.sh
+        $GITHUB_WORKSPACE/scripts/custom.sh
         make defconfig
 
     - name: Compile Toolchain
