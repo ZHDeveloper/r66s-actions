@@ -39,6 +39,8 @@ rm -rf feeds/packages/net/v2ray-geodata
 rm -rf feeds/packages/lang/golang
 rm -rf feeds/luci/applications/luci-app-openclash
 rm -rf feeds/luci/applications/luci-app-passwall
+# 移除 openwrt feeds 自带的核心库
+rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls}
 
 mkdir -p package
 
@@ -47,6 +49,8 @@ clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
 clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang"
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/luci-app-passwall"
+clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/passwall-luci"
+clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall-packages" "package/passwall-packages"
 
 git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
 git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
