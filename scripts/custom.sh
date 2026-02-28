@@ -30,14 +30,6 @@ clone_package() {
 
 # ── Custom packages ───────────────────────────────────────────────────────────
 
-mkdir -p package
-
-clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
-clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/luci-app-passwall"
-
-git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
-git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
-
 # Remove conflicting feed packages before installing custom ones
 find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
 find ./ | grep Makefile | grep mosdns | xargs rm -f
@@ -48,9 +40,16 @@ rm -rf feeds/packages/lang/golang
 rm -rf feeds/luci/applications/luci-app-openclash
 rm -rf feeds/luci/applications/luci-app-passwall
 
+mkdir -p package
+
 clone_package "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
 clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
 clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang"
+clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
+clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/luci-app-passwall"
+
+git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
+git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
 
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
     git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
