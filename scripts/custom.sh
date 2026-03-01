@@ -39,10 +39,7 @@ rm -rf feeds/packages/net/v2ray-geodata
 rm -rf feeds/packages/lang/golang
 rm -rf feeds/luci/applications/luci-app-openclash
 rm -rf feeds/luci/applications/luci-app-passwall
-rm -rf feeds/packages/net/phtunnel
-rm -rf feeds/luci/applications/luci-app-phtunnel
-rm -rf feeds/luci/applications/luci-app-filetransfer
-rm -rf feeds/luci/applications/luci-app-turboacc
+# 移除 openwrt feeds 自带的核心库
 rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls}
 
 mkdir -p package
@@ -61,14 +58,6 @@ git_sparse_clone master https://github.com/linkease/nas-packages network/service
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
     git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
 fi
-
-# Phtunnel
-git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-phtunnel
-git_sparse_clone master https://github.com/coolsnowwolf/packages net/phtunnel
-
-# Filetransfer & TurboACC
-git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-filetransfer
-git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-turboacc
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
 
