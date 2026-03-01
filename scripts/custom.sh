@@ -65,6 +65,12 @@ fi
 # Phtunnel
 clone_package "https://github.com/mingxiaoyu/luci-app-phtunnel" "package/phtunnel"
 
+# Filetransfer
+clone_package "https://github.com/f8q8/luci-app-filetransfer" "package/luci-app-filetransfer"
+
+# TurboACC
+clone_package "https://github.com/chenmozhijin/turboacc" "package/turboacc"
+
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
 
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
