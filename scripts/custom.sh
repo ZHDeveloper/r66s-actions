@@ -63,13 +63,12 @@ if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
 fi
 
 # Phtunnel
-clone_package "https://github.com/mingxiaoyu/luci-app-phtunnel" "package/phtunnel"
+git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-phtunnel
+git_sparse_clone master https://github.com/coolsnowwolf/packages net/phtunnel
 
-# Filetransfer
-clone_package "https://github.com/f8q8/luci-app-filetransfer" "package/luci-app-filetransfer"
-
-# TurboACC
-clone_package "https://github.com/chenmozhijin/turboacc" "package/turboacc"
+# Filetransfer & TurboACC
+git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-filetransfer
+git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-turboacc
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
 
