@@ -116,3 +116,24 @@ if [[ "$FIRMWARE_TYPE" == "LEDE" ]]; then
     sed -i "s/KERNEL_PATCHVER:=*.*/KERNEL_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
     sed -i "s/KERNEL_TESTING_PATCHVER:=*.*/KERNEL_TESTING_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
 fi
+
+# Fix: disable download-ci-llvm to avoid 404 on stale CI artifacts (ImmortalWrt only)
+if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
+    RUST_BOOTSTRAP_TOML=$(find feeds/packages/lang/rust -name "bootstrap.toml" 2>/dev/null | head -1)
+    if [ -n "$RUST_BOOTSTRAP_TOML" ]; then
+        if ! grep -q "download-ci-llvm" "$RUST_BOOTSTRAP_TOML"; then
+            sed -i '/^\[llvm\]/a download-ci-llvm = false' "$RUST_BOOTSTRAP_TOML"
+        else
+            sed -i 's/download-ci-llvm\s*=\s*true/download-ci-llvm = false/' "$RUST_BOOTSTRAP_TOML"
+        fi
+        echo "Patched $RUST_BOOTSTRAP_TOML: download-ci-llvm = false"
+    else
+        # bootstrap.toml may be generated at build time; patch the Makefile instead
+        RUST_MAKEFILE=$(find feeds/packages/lang/rust -name "Makefile" | head -1)
+        if [ -n "$RUST_MAKEFILE" ]; then
+            sed -i 's/download-ci-llvm = "if-available"/download-ci-llvm = false/g' "$RUST_MAKEFILE"
+            sed -i 's/download-ci-llvm = true/download-ci-llvm = false/g' "$RUST_MAKEFILE"
+            echo "Patched $RUST_MAKEFILE: download-ci-llvm = false"
+        fi
+    fi
+fi
