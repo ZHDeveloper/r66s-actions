@@ -116,10 +116,3 @@ if [[ "$FIRMWARE_TYPE" == "LEDE" ]]; then
     sed -i "s/KERNEL_PATCHVER:=*.*/KERNEL_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
     sed -i "s/KERNEL_TESTING_PATCHVER:=*.*/KERNEL_TESTING_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
 fi
-
-# Insert rootfs expansion script for r66s direct flash firmware
-if [ "$BUILD_TYPE" == "r66s" ]; then
-    mkdir -p package/base-files/files/etc/uci-defaults
-    cp $GITHUB_WORKSPACE/scripts/99-rootfs-resize.sh package/base-files/files/etc/uci-defaults/99-rootfs-resize
-    chmod +x package/base-files/files/etc/uci-defaults/99-rootfs-resize
-fi
