@@ -116,12 +116,3 @@ if [[ "$FIRMWARE_TYPE" == "LEDE" ]]; then
     sed -i "s/KERNEL_PATCHVER:=*.*/KERNEL_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
     sed -i "s/KERNEL_TESTING_PATCHVER:=*.*/KERNEL_TESTING_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
 fi
-
-# ── Rust bootstrap 兼容修复（仅 ImmortalWrt，避免下载已清理的 CI LLVM 导致 404）──
-if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]] && [ -f feeds/packages/lang/rust/Makefile ]; then
-    sed -i 's/--set=llvm\.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/g' \
-        feeds/packages/lang/rust/Makefile
-    # 某些分支会在模板中直接写 download-ci-llvm=true
-    find feeds/packages/lang/rust -type f \( -name "*.toml" -o -name "*.template" \) -print0 2>/dev/null \
-        | xargs -0 -I{} sed -i 's/download-ci-llvm = true/download-ci-llvm = false/g' "{}" || true
-fi
