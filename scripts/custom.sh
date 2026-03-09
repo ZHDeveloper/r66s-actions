@@ -58,6 +58,7 @@ if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
     # 移除 feeds 里的旧版，然后用 git_sparse_clone 把新版提取为局部的 package/rust 进行覆盖。
     rm -rf feeds/packages/lang/rust
     git_sparse_clone master https://github.com/coolsnowwolf/packages lang/rust
+    cp -a package/rust feeds/packages/lang/
 fi
 
 git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
