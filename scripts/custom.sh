@@ -116,3 +116,19 @@ if [[ "$FIRMWARE_TYPE" == "LEDE" ]]; then
     sed -i "s/KERNEL_PATCHVER:=*.*/KERNEL_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
     sed -i "s/KERNEL_TESTING_PATCHVER:=*.*/KERNEL_TESTING_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
 fi
+
+# ── Rust bootstrap 兼容修复（使用系统 LLVM，避免从源码编译 LLVM 导致超时）──
+if [ -f feeds/packages/lang/rust/Makefile ]; then
+    # 禁用 CI 预编译 LLVM 下载（URL 已失效），改用系统已安装的 LLVM（link-shared）
+    sed -i 's/--set=llvm\.download-ci-llvm=true/--set=llvm.download-ci-llvm=if-unchanged/g' \
+        feeds/packages/lang/rust/Makefile
+    # 追加 link-shared 参数，直接链接系统 LLVM，跳过 LLVM 自行编译
+    sed -i '/--set=llvm\.download-ci-llvm/a\        --set=llvm.link-shared=true \\' \
+        feeds/packages/lang/rust/Makefile || true
+    # 模板文件中的 download-ci-llvm
+    find feeds/packages/lang/rust -type f \( -name "*.toml" -o -name "*.template" \) -print0 2>/dev/null \
+        | xargs -0 -I{} sed -i \
+            -e 's/download-ci-llvm = true/download-ci-llvm = "if-unchanged"/g' \
+            -e 's/download-ci-llvm = false/download-ci-llvm = "if-unchanged"/g' \
+            "{}" || true
+fi
