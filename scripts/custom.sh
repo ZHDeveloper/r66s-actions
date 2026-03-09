@@ -48,9 +48,11 @@ clone_package "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
 clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
 clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang"
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
+rm -rf package/luci-app-ssr-plus/shadowsocks-rust  # Rust 依赖，GitHub runner 无法编译 LLVM
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/luci-app-passwall"
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/passwall-luci"
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall-packages" "package/passwall-packages"
+rm -rf package/passwall-packages/shadowsocks-rust   # Rust 依赖，GitHub runner 无法编译 LLVM
 
 git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
 git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
