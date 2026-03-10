@@ -52,20 +52,18 @@ clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/lu
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/passwall-luci"
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall-packages" "package/passwall-packages"
 
+git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
+git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
+
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
+    git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
+
     # 通过引入 coolsnowwolf (LEDE) 的最新版 Rust (1.93.1) 替换 ImmortalWrt 老旧版(1.90.0)。
     # 因为 1.93.1 在官方服务器上的预编译 LLVM 仍在，不会 404，因此可以直接下载跳过编译，不会爆内存！
     # 移除 feeds 里的旧版，然后用 git_sparse_clone 把新版提取为局部的 package/rust 进行覆盖。
     rm -rf feeds/packages/lang/rust
     git_sparse_clone master https://github.com/coolsnowwolf/packages lang/rust
     cp -a package/rust feeds/packages/lang/
-fi
-
-git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
-git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
-
-if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
-    git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
 fi
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
