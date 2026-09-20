@@ -128,7 +128,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        chmod +x scripts/*.sh
+        chmod +x scripts/*
         $GITHUB_WORKSPACE/scripts/toolchain.sh
 
     - name: Load custom configuration

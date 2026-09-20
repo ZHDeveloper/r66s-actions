@@ -118,22 +118,11 @@ fi
 
 # OpenWrt 标准开机默认配置（uci-defaults）
 mkdir -p files/etc/uci-defaults
-cat << 'EOF' > files/etc/uci-defaults/99-custom-settings
-#!/bin/sh
-
-# 修改默认 LAN IP
-uci set network.lan.ipaddr='192.168.100.1'
-uci commit network
-
-# 修改主机名
-uci set system.@system[0].hostname='OpenWrt'
-uci commit system
-
-# 修改默认密码为 password
-echo -e "password\npassword" | passwd root >/dev/null 2>&1
-
-exit 0
-EOF
+if [ -f "$GITHUB_WORKSPACE/scripts/99-custom-settings" ]; then
+    cp -f "$GITHUB_WORKSPACE/scripts/99-custom-settings" files/etc/uci-defaults/99-custom-settings
+elif [ -f "../scripts/99-custom-settings" ]; then
+    cp -f "../scripts/99-custom-settings" files/etc/uci-defaults/99-custom-settings
+fi
 chmod +x files/etc/uci-defaults/99-custom-settings
 
 # Configure ttyd auto-login
