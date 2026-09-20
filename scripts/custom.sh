@@ -36,7 +36,6 @@ find ./ | grep Makefile | grep mosdns | xargs rm -f
 rm -rf feeds/packages/net/mosdns
 rm -rf feeds/luci/applications/luci-app-mosdns
 rm -rf feeds/packages/net/v2ray-geodata
-rm -rf feeds/packages/lang/golang
 rm -rf feeds/luci/applications/luci-app-openclash
 rm -rf feeds/luci/applications/luci-app-passwall
 # 移除 openwrt feeds 自带的核心库
@@ -46,7 +45,6 @@ mkdir -p package
 
 clone_package "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
 clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
-clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang"
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/luci-app-passwall"
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/passwall-luci"
@@ -56,6 +54,10 @@ git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-ap
 git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
 
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
+    # 判断为 ImmortalWrt 时，替换 golang 为指定稳定分支 (24.x，即 Go 1.24)
+    rm -rf feeds/packages/lang/golang
+    clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "24.x"
+
     # git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
 
     # 通过引入 coolsnowwolf (LEDE) 的最新版 Rust (1.93.1) 替换 ImmortalWrt 老旧版(1.90.0)。
@@ -64,6 +66,7 @@ if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
     rm -rf feeds/packages/lang/rust
     git_sparse_clone master https://github.com/coolsnowwolf/packages lang/rust
     cp -a package/rust feeds/packages/lang/
+
 fi
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
