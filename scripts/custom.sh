@@ -136,9 +136,3 @@ fi
 # Add build timestamp
 mkdir -p package/base-files/files/etc
 echo "Built on $(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")" >> package/base-files/files/etc/banner
-
-# Kernel version (LEDE only)
-if [[ "$FIRMWARE_TYPE" == "LEDE" ]] && [ -f target/linux/rockchip/Makefile ]; then
-    sed -i "s/KERNEL_PATCHVER:=*.*/KERNEL_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
-    sed -i "s/KERNEL_TESTING_PATCHVER:=*.*/KERNEL_TESTING_PATCHVER:=6.12/g" target/linux/rockchip/Makefile
-fi
