@@ -49,7 +49,7 @@ clone_package() {
 
 # Remove conflicting feed packages before installing custom ones
 find feeds/ -maxdepth 4 -type d \( -name "mosdns" -o -name "luci-app-mosdns" -o -name "v2ray-geodata" -o -name "luci-app-openclash" -o -name "luci-app-passwall" \) -exec rm -rf {} + 2>/dev/null || true
-rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls} 2>/dev/null || true
+rm -rf feeds/packages/net/{xray-core,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls} 2>/dev/null || true
 
 mkdir -p package
 
@@ -77,7 +77,7 @@ fi
 git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
 
-if [[ "$BUILD_TYPE" == "flippy" || "$CONFIG_FILE" == *"flippy"* ]]; then
+if [[ "$BUILD_TYPE" == "flippy" ]]; then
     git_sparse_clone main https://github.com/ophub/luci-app-amlogic luci-app-amlogic
     config_file="package/luci-app-amlogic/root/etc/config/amlogic"
     if [ -f "$config_file" ]; then

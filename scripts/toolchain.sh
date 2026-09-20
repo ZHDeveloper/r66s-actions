@@ -22,7 +22,6 @@ mkdir -p "$GITHUB_WORKSPACE/output"
 # 打包 Toolchain
 if [[ "$REBUILD_TOOLCHAIN" == 'true' ]]; then
     echo "Packing toolchain cache: $CACHE_NAME.tzst"
-    sed -i 's/ $(tool.*\/stamp-compile)//' Makefile 2>/dev/null || true
     ccache_dir=$([ -d ".ccache" ] && echo ".ccache" || echo "")
     tar -I "zstdmt -3" -cf "$GITHUB_WORKSPACE/output/$CACHE_NAME.tzst" staging_dir/host* staging_dir/tool* $ccache_dir
     [[ -e "$GITHUB_WORKSPACE/output/$CACHE_NAME.tzst" ]] || exit 1

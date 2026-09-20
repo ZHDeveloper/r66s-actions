@@ -73,8 +73,8 @@ jobs:
           ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
           bzip2 cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
           git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
-          libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
-          mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools \
+          libmpc-dev libmpfr-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
+          mkisofs msmtp nano ninja-build p7zip-full patch pkgconf python3 python3-pyelftools \
           libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip \
           vim wget xmlto xxd zlib1g-dev python3-setuptools
         sudo -E apt-get -qq autoremove --purge
@@ -185,40 +185,17 @@ jobs:
         make -j$(nproc) || make -j1 || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
 
-    # ── r66s 直刷固件流程 ──────────────────────────────────────────
-    - name: Organize files
-      id: organize
+    # ── 固件后处理 ────────────────────────────────────────────────
+    - name: Organize firmware (r66s)
       if: steps.compile.outputs.status == 'success' && env.BUILD_TYPE == 'r66s'
       run: |
         cd openwrt/bin/targets/*/*
         rm -rf packages
-        echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-        echo "status=success" >> $GITHUB_OUTPUT
+        echo "FIRMWARE_DIR=$PWD" >> $GITHUB_ENV
+        echo "DEVICE_DESC=FastRhino R66S (RK3568)" >> $GITHUB_ENV
+        echo "FIRMWARE_READY=true" >> $GITHUB_ENV
 
-    - name: Generate release tag (r66s)
-      id: tag_r66s
-      if: steps.organize.outputs.status == 'success'
-      run: |
-        touch release.txt
-        echo "📦 ${{ matrix.name }} R66S 固件" >> release.txt
-        echo "🕐 编译时间: $(date '+%Y-%m-%d %H:%M:%S')" >> release.txt
-        echo "🌿 源码分支: ${{ matrix.repo_branch }}" >> release.txt
-        echo "🎯 支持设备: FastRhino R66S (RK3568)" >> release.txt
-        echo "status=success" >> $GITHUB_OUTPUT
-
-    - name: Upload firmware to release (r66s)
-      if: steps.tag_r66s.outputs.status == 'success'
-      uses: softprops/action-gh-release@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ env.RELEASE_TAG }}
-        body_path: release.txt
-        files: ${{ env.FIRMWARE }}/*
-
-    # ── flippy ARMv8 打包流程 ──────────────────────────────────────
     - name: Packaging OpenWrt (flippy)
-      id: package_flippy
       if: steps.compile.outputs.status == 'success' && env.BUILD_TYPE == 'flippy'
       uses: ophub/flippy-openwrt-actions@main
       env:
@@ -227,8 +204,7 @@ jobs:
         KERNEL_VERSION_NAME: 6.6.y_6.12.y
         KERNEL_AUTO_LATEST: true
 
-    - name: Rename Firmware (flippy)
-      id: rename
+    - name: Rename and organize firmware (flippy)
       if: env.PACKAGED_STATUS == 'success' && env.BUILD_TYPE == 'flippy'
       run: |
         cd ${{ env.PACKAGED_OUTPUTPATH }}
@@ -238,28 +214,30 @@ jobs:
           mv "$file" "$new_name"
           echo "Renamed: $file -> $new_name"
         done
-        echo "status=success" >> $GITHUB_OUTPUT
+        echo "FIRMWARE_DIR=${{ env.PACKAGED_OUTPUTPATH }}" >> $GITHUB_ENV
+        echo "DEVICE_DESC=FastRhino R66S / ARMv8" >> $GITHUB_ENV
+        echo "FIRMWARE_READY=true" >> $GITHUB_ENV
 
-    - name: Generate release tag (flippy)
-      id: tag_flippy
-      if: steps.rename.outputs.status == 'success'
+    # ── 统一 Release 发布 ──────────────────────────────────────────
+    - name: Generate release metadata
+      if: env.FIRMWARE_READY == 'true'
       run: |
-        touch release.txt
-        echo "📦 ${{ matrix.name }} ARMv8 固件" >> release.txt
-        echo "🕐 编译时间: $(date '+%Y-%m-%d %H:%M:%S')" >> release.txt
-        echo "🌿 源码分支: ${{ matrix.repo_branch }}" >> release.txt
-        echo "🎯 支持设备: FastRhino R66S / ARMv8" >> release.txt
-        echo "status=success" >> $GITHUB_OUTPUT
+        cat << EOF > release.txt
+        📦 ${{ matrix.name }} ${{ env.BUILD_TYPE == 'flippy' && 'ARMv8' || 'R66S' }} 固件
+        🕐 编译时间: $(date '+%Y-%m-%d %H:%M:%S')
+        🌿 源码分支: ${{ matrix.repo_branch }}
+        🎯 支持设备: $DEVICE_DESC
+        EOF
 
-    - name: Upload firmware to release (flippy)
-      if: steps.tag_flippy.outputs.status == 'success'
+    - name: Upload firmware to release
+      if: env.FIRMWARE_READY == 'true'
       uses: softprops/action-gh-release@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ env.RELEASE_TAG }}
         body_path: release.txt
-        files: ${{ env.PACKAGED_OUTPUTPATH }}/*
+        files: ${{ env.FIRMWARE_DIR }}/*
 
     # ── 清理 ──────────────────────────────────────────────────────
     - name: Cleanup
