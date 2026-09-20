@@ -83,11 +83,15 @@ jobs:
 
     - name: Combine Disks
       run: |
-        # 预留 4GB 根分区空间作为 swapfile，防止编译 Rust/Go 时因内存耗尽而 OOM 崩溃
-        sudo fallocate -l 4G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
-        sudo chmod 600 /swapfile
-        sudo mkswap /swapfile
-        sudo swapon /swapfile
+        # 确保存在 4GB swap（防止编译 Rust/Go 时因内存耗尽而 OOM 崩溃）
+        if [ $(wc -l < /proc/swaps) -le 1 ]; then
+          if [ ! -s /swapfile ]; then
+            sudo fallocate -l 4G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+          fi
+          sudo swapon /swapfile 2>/dev/null || true
+        fi
 
         if mountpoint -q /mnt; then
           mnt_size=$(($(df -k --output=avail /mnt | tail -1) / 1024 - 1024))
