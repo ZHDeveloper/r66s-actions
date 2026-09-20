@@ -58,17 +58,15 @@ if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
     rm -rf feeds/packages/lang/golang
     clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "24.x"
 
-    # git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
-
     # 通过引入 coolsnowwolf (LEDE) 的最新版 Rust (1.93.1) 替换 ImmortalWrt 老旧版(1.90.0)。
     # 因为 1.93.1 在官方服务器上的预编译 LLVM 仍在，不会 404，因此可以直接下载跳过编译，不会爆内存！
     # 移除 feeds 里的旧版，然后用 git_sparse_clone 把新版提取为局部的 package/rust 进行覆盖。
     rm -rf feeds/packages/lang/rust
     git_sparse_clone master https://github.com/coolsnowwolf/packages lang/rust
     cp -a package/rust feeds/packages/lang/
-
 fi
 
+git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
 
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
@@ -81,10 +79,10 @@ fi
 # ── Download binary cores ─────────────────────────────────────────────────────
 
 # AdGuard Home
-# [ -d files/usr/bin/AdGuardHome ] || mkdir -p files/usr/bin/AdGuardHome
-# wget -qO- https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz \
-#     | tar xOz > files/usr/bin/AdGuardHome/AdGuardHome
-# chmod +x files/usr/bin/AdGuardHome/AdGuardHome
+[ -d files/usr/bin/AdGuardHome ] || mkdir -p files/usr/bin/AdGuardHome
+wget -qO- https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz \
+    | tar -xz -C files/usr/bin/AdGuardHome --strip-components=1 --wildcards '*/AdGuardHome'
+chmod +x files/usr/bin/AdGuardHome/AdGuardHome
 
 # OpenClash core and geo files
 [ -d files/etc/openclash/core ] || mkdir -p files/etc/openclash/core
