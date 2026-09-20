@@ -136,14 +136,6 @@ exit 0
 EOF
 chmod +x files/etc/uci-defaults/99-custom-settings
 
-# 兼容预生成配置
-for cfg in package/base-files/files/bin/config_generate package/base-files/luci2/bin/config_generate; do
-    if [ -f "$cfg" ]; then
-        sed -i 's/192.168.1.1/192.168.100.1/g' "$cfg"
-        sed -i "s/hostname='.*'/hostname='OpenWrt'/g" "$cfg"
-    fi
-done
-
 # Configure ttyd auto-login
 if [ -f feeds/packages/utils/ttyd/files/ttyd.config ]; then
     sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config

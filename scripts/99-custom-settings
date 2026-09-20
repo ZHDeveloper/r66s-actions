@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# 修改默认 LAN IP
+uci set network.lan.ipaddr='192.168.100.1'
+uci commit network
+
+# 修改主机名
+uci set system.@system[0].hostname='OpenWrt'
+uci commit system
+
+# 修改默认密码为 password
+echo -e "password\npassword" | passwd root >/dev/null 2>&1
+
+exit 0
