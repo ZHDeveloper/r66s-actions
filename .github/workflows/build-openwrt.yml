@@ -2,10 +2,12 @@ name: Build OpenWrt for R66S
 
 on:
   workflow_dispatch:
-  watch:
-    types: [started]
   schedule:
     - cron: 0 20 * * *
+
+permissions:
+  contents: write
+  actions: write
 
 env:
   TZ: Asia/Shanghai
@@ -59,7 +61,6 @@ jobs:
       run: |
         docker rmi -f $(docker images -q) 2>/dev/null || true
         sudo rm -rf /usr/share/dotnet /usr/local/lib/android $AGENT_TOOLSDIRECTORY
-        sudo swapoff -a && sudo rm -f /swapfile /mnt/swapfile
         df -hT
 
     - name: Initialization environment
@@ -73,7 +74,7 @@ jobs:
           bzip2 cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
           git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
           libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
-          mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
+          mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools \
           libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip \
           vim wget xmlto xxd zlib1g-dev python3-setuptools
         sudo -E apt-get -qq autoremove --purge
@@ -82,21 +83,34 @@ jobs:
 
     - name: Combine Disks
       run: |
+        # 预留 4GB 根分区空间作为 swapfile，防止编译 Rust/Go 时因内存耗尽而 OOM 崩溃
+        sudo fallocate -l 4G /swapfile 2>/dev/null || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
+        sudo chmod 600 /swapfile
+        sudo mkswap /swapfile
+        sudo swapon /swapfile
+
         if mountpoint -q /mnt; then
           mnt_size=$(($(df -k --output=avail /mnt | tail -1) / 1024 - 1024))
-          sudo truncate -s ${mnt_size}M /mnt/mnt.img
-          loop_mnt=$(sudo losetup -f --show /mnt/mnt.img)
+          if [ $mnt_size -gt 1024 ]; then
+            sudo truncate -s ${mnt_size}M /mnt/mnt.img
+            loop_mnt=$(sudo losetup -f --show /mnt/mnt.img)
+          fi
         fi
-        root_size=$(($(df -k --output=avail / | tail -1) / 1024 - 4096))
+        root_size=$(($(df -k --output=avail / | tail -1) / 1024 - 5120))
         sudo truncate -s ${root_size}M /root.img
         loop_root=$(sudo losetup -f --show /root.img)
-        sudo pvcreate -f $loop_mnt $loop_root
-        sudo vgcreate github $loop_mnt $loop_root
+        
+        loop_devs="$loop_root"
+        [ -n "$loop_mnt" ] && loop_devs="$loop_mnt $loop_root"
+
+        sudo pvcreate -f $loop_devs
+        sudo vgcreate github $loop_devs
         sudo lvcreate -n runner -l 100%FREE github
         sudo mkfs.btrfs -f /dev/github/runner
         sudo mkdir -p /workdir
         sudo mount -o compress=zstd /dev/github/runner /workdir
         sudo chown -R runner:runner /workdir && df -hT
+        free -h
 
     - name: Clone source code
       working-directory: /workdir
@@ -111,6 +125,8 @@ jobs:
       run: cd openwrt && ./scripts/feeds install -a
 
     - name: Cache Toolchain
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         chmod +x scripts/*.sh
         $GITHUB_WORKSPACE/scripts/toolchain.sh
@@ -128,6 +144,8 @@ jobs:
     - name: Compile Toolchain
       if: env.REBUILD_TOOLCHAIN == 'true'
       id: toolchain
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         cd openwrt
         make toolchain/compile -j$(nproc) || make toolchain/compile -j1 V=s
@@ -139,7 +157,7 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ env.TOOLCHAIN_TAG }}
-        assets: '${{ env.FIRMWARE_TYPE }}-*'
+        assets: '${{ env.FIRMWARE_TYPE }}-${{ env.BUILD_TYPE }}-*'
         fail-if-no-assets: false
         fail-if-no-release: false
 
@@ -235,15 +253,13 @@ jobs:
 
     - name: Upload firmware to release (flippy)
       if: steps.tag_flippy.outputs.status == 'success'
-      uses: ncipollo/release-action@main
+      uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: ${{ env.RELEASE_TAG }}
-        allowUpdates: true
-        removeArtifacts: true
-        tag: ${{ env.RELEASE_TAG }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
-        bodyFile: release.txt
+        tag_name: ${{ env.RELEASE_TAG }}
+        body_path: release.txt
+        files: ${{ env.PACKAGED_OUTPUTPATH }}/*
 
     # ── 清理 ──────────────────────────────────────────────────────
     - name: Cleanup
@@ -251,6 +267,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh run list --workflow="build-openwrt.yml" --limit 50 --json databaseId --jq '.[10:][].databaseId' | xargs -I {} gh run delete {} 2>/dev/null || true
-        gh run list --workflow="build-openwrt.yml" --status failure --limit 20 --json databaseId --jq '.[].databaseId' | xargs -I {} gh run delete {} 2>/dev/null || true
-        gh run list --workflow="build-openwrt.yml" --status cancelled --limit 20 --json databaseId --jq '.[].databaseId' | xargs -I {} gh run delete {} 2>/dev/null || true
+        gh run list --workflow="build-openwrt.yml" --limit 30 --json databaseId --jq '.[15:][].databaseId' 2>/dev/null | xargs -r -I {} gh run delete {} 2>/dev/null || true

@@ -34,5 +34,4 @@
 ## 触发编译
 
 - **手动触发**: Actions → Build OpenWrt for R66S → Run workflow
-- **Star 触发**: 对本仓库点 Star
 - **定时触发**: 每日 UTC 20:00（北京时间次日 04:00）自动编译
