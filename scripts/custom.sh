@@ -63,9 +63,9 @@ git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-ap
 git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
 
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
-    # 替换 golang 为 24.x 分支
+    # 替换 golang 为 26.x 分支
     rm -rf feeds/packages/lang/golang
-    clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "24.x"
+    clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "26.x"
 
     # 替换 rust 为 LEDE 最新版预编译支持并清理临时目录避免冲突
     rm -rf feeds/packages/lang/rust
