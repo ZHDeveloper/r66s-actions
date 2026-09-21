@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-# Configure git to use GITHUB_TOKEN for HTTPS authentication
-if [ -n "$GITHUB_TOKEN" ]; then
-    git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+# Configure git to use GITHUB_TOKEN for HTTPS authentication (scoped to current repository only)
+if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPOSITORY" ]; then
+    git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}".insteadOf "https://github.com/${GITHUB_REPOSITORY}"
 fi
 
 # ── Helper functions ──────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ safe_download() {
     local url="$1" output="$2"
     mkdir -p "$(dirname "$output")"
     echo "Downloading: $url -> $output"
-    if ! curl -fsSL --connect-timeout 15 --retry 3 "$url" -o "$output"; then
+    if ! curl -fsSL --connect-timeout 15 --retry 3 --retry-delay 2 "$url" -o "$output"; then
         echo "Error: Failed to download $url" >&2
         return 1
     fi
@@ -125,10 +125,10 @@ elif [ -f "../scripts/99-custom-settings" ]; then
 fi
 chmod +x files/etc/uci-defaults/99-custom-settings
 
-# Configure ttyd auto-login
-if [ -f feeds/packages/utils/ttyd/files/ttyd.config ]; then
-    sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
-fi
+# TTYD: 保持密码验证（如需免密可将下面的注释解开）
+# if [ -f feeds/packages/utils/ttyd/files/ttyd.config ]; then
+#     sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
+# fi
 if [ -f feeds/luci/applications/luci-app-ttyd/po/zh_Hans/ttyd.po ]; then
     sed -i 's/\"终端\"/\"TTYD 终端\"/g' feeds/luci/applications/luci-app-ttyd/po/zh_Hans/ttyd.po
 fi

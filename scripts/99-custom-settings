@@ -9,6 +9,6 @@ uci set system.@system[0].hostname='OpenWrt'
 uci commit system
 
 # 修改默认密码为 password
-echo -e "password\npassword" | passwd root >/dev/null 2>&1
+printf "password\npassword\n" | passwd root >/dev/null 2>&1
 
 exit 0
