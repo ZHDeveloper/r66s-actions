@@ -253,4 +253,6 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh run list --workflow="${{ github.workflow }}" --limit 30 --json databaseId --jq '.[15:][].databaseId' 2>/dev/null | xargs -r -I {} gh run delete {} 2>/dev/null || true
+        gh run list --workflow="build-openwrt.yml" --limit 50 --json databaseId --jq '.[10:][].databaseId' | xargs -I {} gh run delete {} 2>/dev/null || true
+        gh run list --workflow="build-openwrt.yml" --status failure --limit 20 --json databaseId --jq '.[].databaseId' | xargs -I {} gh run delete {} 2>/dev/null || true
+        gh run list --workflow="build-openwrt.yml" --status cancelled --limit 20 --json databaseId --jq '.[].databaseId' | xargs -I {} gh run delete {} 2>/dev/null || true
