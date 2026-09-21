@@ -11,6 +11,9 @@ if [[ -z "$FIRMWARE_TYPE" || -z "$GITHUB_REPOSITORY" ]]; then
     exit 1
 fi
 
+# 避免软链接引起的 Git safe.directory 拦截
+git config --global --add safe.directory "*" 2>/dev/null || true
+
 # 生成包含架构/构建类型的工具链缓存文件名，避免多 Matrix 并发冲突
 cd "$OPENWRT_PATH"
 TOOLS_HASH=$(git log --pretty=tformat:"%h" -n1 tools toolchain)
@@ -29,27 +32,17 @@ if [[ "$REBUILD_TOOLCHAIN" == 'true' ]]; then
     exit 0
 fi
 
-# 下载并部署 Toolchain
-AUTH_HEADER=()
-if [[ -n "$GITHUB_TOKEN" ]]; then
-    AUTH_HEADER=(-H "Authorization: Bearer $GITHUB_TOKEN")
-fi
+# 下载并部署 Toolchain（直链下载，404 自动回退重建）
+DOWNLOAD_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/${TOOLCHAIN_TAG:-toolchain}/$CACHE_NAME.tzst"
+echo "Downloading cached toolchain: $DOWNLOAD_URL"
 
-echo "Searching for cached toolchain: $CACHE_NAME"
-cache_url=$(curl -sL "${AUTH_HEADER[@]}" "https://api.github.com/repos/$GITHUB_REPOSITORY/releases" \
-    | awk -F '"' '/download_url/{print $4}' | grep "$CACHE_NAME\.tzst" | head -1)
-
-if [[ -n "$cache_url" ]]; then
-    echo "Found cache at: $cache_url. Downloading..."
-    if wget -qc -t=3 -T=30 "$cache_url" -O "$CACHE_NAME.tzst"; then
-        echo "Extracting toolchain cache..."
-        if tar -I unzstd -xf "$CACHE_NAME.tzst" || tar -xf "$CACHE_NAME.tzst"; then
-            sed -i 's/ $(tool.*\/stamp-compile)//' Makefile 2>/dev/null || true
-            rm -f "$CACHE_NAME.tzst"
-            echo "Toolchain cache deployed successfully."
-            exit 0
-        fi
-    fi
+if curl -fL --connect-timeout 20 --retry 3 "$DOWNLOAD_URL" -o "$CACHE_NAME.tzst"; then
+    echo "Extracting toolchain cache..."
+    tar -I unzstd -xf "$CACHE_NAME.tzst" 2>/dev/null || zstd -d "$CACHE_NAME.tzst" --stdout | tar -xf -
+    sed -i 's/ $(tool.*\/stamp-compile)//' Makefile 2>/dev/null || true
+    rm -f "$CACHE_NAME.tzst"
+    echo "Toolchain cache deployed successfully."
+    exit 0
 fi
 
 echo "No valid toolchain cache found. Triggering full rebuild..."
