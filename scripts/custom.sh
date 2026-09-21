@@ -63,9 +63,13 @@ git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-ap
 git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
 
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
-    # 替换 golang 为 27.x 分支
+    # 替换 golang 为 27.x 分支 (Go 1.27.1, 满足 Xray-core 等新包要求)
     rm -rf feeds/packages/lang/golang
     clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang" "27.x"
+
+    # 修复 containerd 等旧包在 Go 1.27+ 下的 linkname 校验拦截 (runtime.sched_getaffinity)
+    [ -f feeds/packages/utils/containerd/Makefile ] && sed -i 's/PREFIX=""/PREFIX="" EXTRA_LDFLAGS="-checklinkname=0"/g' feeds/packages/utils/containerd/Makefile
+    [ -f feeds/packages/lang/golang/golang-package.mk ] && sed -i 's/GO_PKG_DEFAULT_LDFLAGS=/GO_PKG_DEFAULT_LDFLAGS= -checklinkname=0/g' feeds/packages/lang/golang/golang-package.mk
 
     # 替换 rust 为 LEDE 最新版预编译支持并清理临时目录避免冲突
     rm -rf feeds/packages/lang/rust
