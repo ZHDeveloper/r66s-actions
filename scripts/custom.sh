@@ -48,7 +48,7 @@ clone_package() {
 # ── Custom packages ───────────────────────────────────────────────────────────
 
 # Remove conflicting feed packages before installing custom ones
-find feeds/ -maxdepth 4 -type d \( -name "mosdns" -o -name "luci-app-mosdns" -o -name "v2ray-geodata" -o -name "luci-app-openclash" -o -name "luci-app-passwall" \) -exec rm -rf {} + 2>/dev/null || true
+find feeds/ -maxdepth 4 -type d \( -name "mosdns" -o -name "luci-app-mosdns" -o -name "v2ray-geodata" -o -name "luci-app-openclash" -o -name "luci-app-passwall" -o -name "*adguardhome*" \) -exec rm -rf {} + 2>/dev/null || true
 rm -rf feeds/packages/net/{xray-core,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls} 2>/dev/null || true
 
 mkdir -p package
