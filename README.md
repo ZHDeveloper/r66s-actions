@@ -16,7 +16,6 @@
 | 分类 | 插件 |
 |------|------|
 | 网络代理 | [OpenClash](https://github.com/vernesong/OpenClash)、[Passwall](https://github.com/Openwrt-Passwall/openwrt-passwall)、[SSR Plus+](https://github.com/fw876/helloworld) |
-| DNS 服务 | [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) |
 | 内网穿透 | [DDNSTO](https://github.com/linkease/nas-packages) |
 | 系统工具 | TTYD 终端 |
 | ARMv8 专属 | [luci-app-amlogic](https://github.com/ophub/luci-app-amlogic)（仅 flippy） |
