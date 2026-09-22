@@ -86,11 +86,21 @@ fi
 
 # ── Download binary cores ─────────────────────────────────────────────────────
 
-# AdGuard Home 核心二进制（luci-app-adguardhome 只含界面，核心需单独提供）
-[ -d files/usr/bin/AdGuardHome ] || mkdir -p files/usr/bin/AdGuardHome
-wget -qO- https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz \
-    | tar xOz > files/usr/bin/AdGuardHome/AdGuardHome
-chmod +x files/usr/bin/AdGuardHome/AdGuardHome
+# AdGuard Home 核心二进制：仅 ImmortalWrt 需要自备。
+#   - ImmortalWrt 用的 coolsnowwolf/luci@openwrt-23.05 版界面是纯 Lua 包，按
+#     /usr/bin/AdGuardHome/AdGuardHome 这种「目录」形态查找核心，故由 files/ 提供。
+#   - LEDE(luci feed = coolsnowwolf/luci@openwrt-25.12) 的 luci-app-adguardhome 已声明
+#     `LUCI_DEPENDS:=+adguardhome`，feeds/packages/net/adguardhome 会自行编译并直接安装成
+#     /usr/bin/AdGuardHome（**普通文件**）+ /etc/init.d/adguardhome + /etc/config/adguardhome。
+#     此时再用 files/ 叠加同路径的「目录」就会在 package/install 阶段报：
+#       cp: cannot overwrite non-directory '.../root-rockchip/./usr/bin/AdGuardHome'
+#           with directory '.../files/./usr/bin/AdGuardHome'
+if [[ "$FIRMWARE_TYPE" != "LEDE" ]]; then
+    [ -d files/usr/bin/AdGuardHome ] || mkdir -p files/usr/bin/AdGuardHome
+    wget -qO- https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz \
+        | tar xOz > files/usr/bin/AdGuardHome/AdGuardHome
+    chmod +x files/usr/bin/AdGuardHome/AdGuardHome
+fi
 
 # OpenClash core and geo files
 [ -d files/etc/openclash/core ] || mkdir -p files/etc/openclash/core
