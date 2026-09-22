@@ -52,11 +52,6 @@ git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-ap
 git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
 
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
-    # 修复 containerd 等旧包在 Go 1.27+ 下的 linkname 校验拦截 (runtime.sched_getaffinity)
-    # 注意：MAKE_FLAGS 里的 EXTRA_LDFLAGS 会覆盖 containerd Makefile 内的 `EXTRA_LDFLAGS += -s -w`，故一并带上
-    [ -f feeds/packages/utils/containerd/Makefile ] && sed -i 's/PREFIX=""/PREFIX="" EXTRA_LDFLAGS="-s -w -checklinkname=0"/g' feeds/packages/utils/containerd/Makefile
-    [ -f feeds/packages/lang/golang/golang-package.mk ] && sed -i 's/GO_PKG_DEFAULT_LDFLAGS=/GO_PKG_DEFAULT_LDFLAGS= -checklinkname=0/g' feeds/packages/lang/golang/golang-package.mk
-
     # ImmortalWrt 的 luci feed(openwrt-24.10) 不含 luci-app-adguardhome，需从 coolsnowwolf/luci 引入。
     # 该应用是纯 Lua 界面包(LUCI_PKGARCH:=all)，核心二进制由紧随其后的 files/ 方式提供；
     # ImmortalWrt 24.10 的 luci.mk 会为带 luasrc/ 的包自动补 +luci-lua-runtime，故 24.10 可正常使用。
@@ -74,13 +69,6 @@ if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
     wget -qO- https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz \
         | tar xOz > files/usr/bin/AdGuardHome/AdGuardHome
     chmod +x files/usr/bin/AdGuardHome/AdGuardHome
-
-    # 通过引入 coolsnowwolf (LEDE) 的最新版 Rust (1.93.1) 替换 ImmortalWrt 老旧版(1.90.0)。
-    # 因为 1.93.1 在官方服务器上的预编译 LLVM 仍在，不会 404，因此可以直接下载跳过编译，不会爆内存！
-    # 移除 feeds 里的旧版，然后用 git_sparse_clone 把新版提取为局部的 package/rust 进行覆盖。
-    rm -rf feeds/packages/lang/rust
-    git_sparse_clone master https://github.com/coolsnowwolf/packages lang/rust
-    cp -a package/rust feeds/packages/lang/
 fi
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
