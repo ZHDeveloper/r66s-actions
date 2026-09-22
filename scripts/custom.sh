@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 set -e
 
 # Configure git to use GITHUB_TOKEN for HTTPS authentication (scoped to current repository only)
@@ -130,9 +130,9 @@ fi
 chmod +x files/etc/uci-defaults/99-custom-settings
 
 # TTYD: 保持密码验证（如需免密可将下面的注释解开）
-# if [ -f feeds/packages/utils/ttyd/files/ttyd.config ]; then
-#     sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
-# fi
+if [ -f feeds/packages/utils/ttyd/files/ttyd.config ]; then
+    sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
+fi
 if [ -f feeds/luci/applications/luci-app-ttyd/po/zh_Hans/ttyd.po ]; then
     sed -i 's/\"终端\"/\"TTYD 终端\"/g' feeds/luci/applications/luci-app-ttyd/po/zh_Hans/ttyd.po
 fi
