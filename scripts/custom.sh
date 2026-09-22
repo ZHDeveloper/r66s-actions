@@ -44,6 +44,7 @@ rm -rf feeds/packages/net/{xray-core,v2ray-geodata,sing-box,chinadns-ng,dns2sock
 
 mkdir -p package
 
+clone_package "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
 clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
 clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang"
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
