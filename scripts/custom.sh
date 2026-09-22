@@ -32,6 +32,9 @@ clone_package() {
 
 # Remove conflicting feed packages before installing custom ones
 find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
+find ./ | grep Makefile | grep mosdns | xargs rm -f
+rm -rf feeds/packages/net/mosdns
+rm -rf feeds/luci/applications/luci-app-mosdns
 rm -rf feeds/packages/net/v2ray-geodata
 rm -rf feeds/packages/lang/golang
 rm -rf feeds/luci/applications/luci-app-openclash
@@ -50,6 +53,13 @@ clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall-packages" "p
 
 git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-app-ddnsto
 git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
+
+if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
+    # 修复 containerd 等旧包在 Go 1.27+ 下的 linkname 校验拦截 (runtime.sched_getaffinity)
+    # 注意：MAKE_FLAGS 里的 EXTRA_LDFLAGS 会覆盖 containerd Makefile 内的 `EXTRA_LDFLAGS += -s -w`，故一并带上
+    [ -f feeds/packages/utils/containerd/Makefile ] && sed -i 's/PREFIX=""/PREFIX="" EXTRA_LDFLAGS="-s -w -checklinkname=0"/g' feeds/packages/utils/containerd/Makefile
+    [ -f feeds/packages/lang/golang/golang-package.mk ] && sed -i 's/GO_PKG_DEFAULT_LDFLAGS=/GO_PKG_DEFAULT_LDFLAGS= -checklinkname=0/g' feeds/packages/lang/golang/golang-package.mk
+fi
 
 git_sparse_clone master https://github.com/vernesong/OpenClash luci-app-openclash
 
