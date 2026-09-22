@@ -1,14 +1,14 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -e
 
-# Configure git to use GITHUB_TOKEN for HTTPS authentication (scoped to current repository only)
+# 配置 Git 使用 GITHUB_TOKEN 进行 HTTPS 认证（仅限当前仓库）
 if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_REPOSITORY" ]; then
     git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}".insteadOf "https://github.com/${GITHUB_REPOSITORY}"
 fi
 
-# ── Helper functions ──────────────────────────────────────────────────────────
+# ── 辅助函数 ──────────────────────────────────────────────────────────────────
 
-# Safe download with timeout, retry and non-zero exit code on failure
+# 安全下载：包含超时、重试机制，失败时返回非零退出码
 safe_download() {
     local url="$1" output="$2"
     mkdir -p "$(dirname "$output")"
@@ -19,7 +19,7 @@ safe_download() {
     fi
 }
 
-# Sparse clone: clone only specified subdirectories and move them to package/
+# 部分检出（Sparse clone）：仅克隆指定子目录并移动到 package/
 git_sparse_clone() {
     local branch="$1" repourl="$2"
     shift 2
@@ -39,15 +39,15 @@ git_sparse_clone() {
     rm -rf "$repodir"
 }
 
-# Clone a package repository (with optional branch)
+# 克隆软件包仓库（支持指定分支）
 clone_package() {
     local url="$1" target="$2" branch="$3"
     [ -n "$branch" ] && git clone --depth=1 -b "$branch" "$url" "$target" || git clone --depth=1 "$url" "$target"
 }
 
-# ── Custom packages ───────────────────────────────────────────────────────────
+# ── 自定义软件包 ─────────────────────────────────────────────────────────────
 
-# Remove conflicting feed packages before installing custom ones
+# 在安装自定义软件包之前，移除 feeds 中冲突的软件包
 find feeds/ -maxdepth 4 -type d \( -name "mosdns" -o -name "luci-app-mosdns" -o -name "v2ray-geodata" -o -name "luci-app-openclash" -o -name "luci-app-passwall" -o -name "*adguardhome*" \) -exec rm -rf {} + 2>/dev/null || true
 rm -rf feeds/packages/net/{xray-core,sing-box,chinadns-ng,dns2socks,hysteria,ipt2socks,microsocks,naiveproxy,shadowsocks-libev,shadowsocks-rust,shadowsocksr-libev,simple-obfs,tcping,trojan-plus,tuic-client,v2ray-plugin,xray-plugin,geoview,shadow-tls} 2>/dev/null || true
 
@@ -90,16 +90,16 @@ if [[ "$BUILD_TYPE" == "flippy" ]]; then
     fi
 fi
 
-# ── Download binary cores ─────────────────────────────────────────────────────
+# ── 下载二进制核心文件 ───────────────────────────────────────────────────────
 
-# AdGuard Home
+# AdGuard Home 核心
 mkdir -p files/usr/bin/AdGuardHome
 safe_download "https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz" "AdGuardHome.tar.gz"
 tar -xzf AdGuardHome.tar.gz -C files/usr/bin/AdGuardHome --strip-components=1 --wildcards '*/AdGuardHome'
 rm -f AdGuardHome.tar.gz
 chmod +x files/usr/bin/AdGuardHome/AdGuardHome
 
-# OpenClash core and geo files
+# OpenClash 核心与 Geo 数据库文件
 mkdir -p files/etc/openclash/core
 safe_download "https://raw.githubusercontent.com/vernesong/OpenClash/core/master/meta/clash-linux-arm64.tar.gz" "clash_meta.tar.gz"
 tar -xzf clash_meta.tar.gz -C files/etc/openclash/core/
@@ -113,9 +113,9 @@ safe_download "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/re
 safe_download "https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat" "files/etc/openclash/GeoSite.dat"
 safe_download "https://raw.githubusercontent.com/alecthw/mmdb_china_ip_list/release/Country.mmdb" "files/etc/openclash/Country.mmdb"
 
-# ── DIY customizations ────────────────────────────────────────────────────────
+# ── 自定义配置修改 ──────────────────────────────────────────────────────────
 
-# Set default theme
+# 设置默认主题
 if [ -f feeds/luci/collections/luci/Makefile ]; then
     sed -i 's/luci-theme-bootstrap/luci-theme-argon/g' feeds/luci/collections/luci/Makefile
 fi
@@ -137,6 +137,6 @@ if [ -f feeds/luci/applications/luci-app-ttyd/po/zh_Hans/ttyd.po ]; then
     sed -i 's/\"终端\"/\"TTYD 终端\"/g' feeds/luci/applications/luci-app-ttyd/po/zh_Hans/ttyd.po
 fi
 
-# Add build timestamp
+# 添加编译时间戳
 mkdir -p package/base-files/files/etc
 echo "Built on $(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")" >> package/base-files/files/etc/banner

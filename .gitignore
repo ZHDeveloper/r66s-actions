@@ -1,8 +1,8 @@
-# OpenWrt build artifacts
+# OpenWrt 编译产物
 /openwrt/
 /lede/
 
-# Build directories
+# 编译目录
 bin/
 build_dir/
 staging_dir/
@@ -10,19 +10,19 @@ tmp/
 logs/
 dl/
 
-# Configuration backup
+# 配置文件备份
 *.orig
 *.bak
 *~
 
-# IDE and editor files
+# IDE 与编辑器配置文件
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# 操作系统生成的文件
 .DS_Store
 .DS_Store?
 ._*
@@ -31,12 +31,12 @@ dl/
 ehthumbs.db
 Thumbs.db
 
-# Temporary files
+# 临时文件
 *.tmp
 *.temp
 *.log
 
-# Package files
+# 打包与压缩文件
 *.deb
 *.rpm
 *.tar.gz
@@ -44,17 +44,17 @@ Thumbs.db
 *.tar.xz
 *.zip
 
-# SSH keys and secrets
+# SSH 密钥与敏感信息
 *.pem
 *.key
 id_rsa*
 id_ed25519*
 
-# Local environment files
+# 本地环境变量文件
 .env
 .env.local
 .env.*.local
 
-# Cache directories
+# 缓存目录
 .cache/
 node_modules/
