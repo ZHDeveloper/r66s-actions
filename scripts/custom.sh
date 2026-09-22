@@ -56,7 +56,11 @@ git_sparse_clone main https://github.com/linkease/nas-packages-luci luci/luci-ap
 git_sparse_clone master https://github.com/linkease/nas-packages network/services/ddnsto
 
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]]; then
-    # git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
+    # ImmortalWrt 的 luci feed(openwrt-24.10) 不含 luci-app-adguardhome，需从 coolsnowwolf/luci 引入。
+    # 该应用是纯 Lua 界面包(LUCI_PKGARCH:=all)，核心二进制由下方 files/ 方式提供；
+    # ImmortalWrt 24.10 的 luci.mk 会为带 luasrc/ 的包自动补 +luci-lua-runtime，故 24.10 可正常使用。
+    # LEDE 构建不需要这步：LEDE master 的 luci feed 指向 coolsnowwolf/luci@openwrt-25.12，该分支自带此应用。
+    git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
 
     # 通过引入 coolsnowwolf (LEDE) 的最新版 Rust (1.93.1) 替换 ImmortalWrt 老旧版(1.90.0)。
     # 因为 1.93.1 在官方服务器上的预编译 LLVM 仍在，不会 404，因此可以直接下载跳过编译，不会爆内存！
@@ -77,11 +81,11 @@ fi
 
 # ── Download binary cores ─────────────────────────────────────────────────────
 
-# AdGuard Home
-# [ -d files/usr/bin/AdGuardHome ] || mkdir -p files/usr/bin/AdGuardHome
-# wget -qO- https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz \
-#     | tar xOz > files/usr/bin/AdGuardHome/AdGuardHome
-# chmod +x files/usr/bin/AdGuardHome/AdGuardHome
+# AdGuard Home 核心二进制（luci-app-adguardhome 只含界面，核心需单独提供）
+[ -d files/usr/bin/AdGuardHome ] || mkdir -p files/usr/bin/AdGuardHome
+wget -qO- https://github.com/AdguardTeam/AdGuardHome/releases/latest/download/AdGuardHome_linux_arm64.tar.gz \
+    | tar xOz > files/usr/bin/AdGuardHome/AdGuardHome
+chmod +x files/usr/bin/AdGuardHome/AdGuardHome
 
 # OpenClash core and geo files
 [ -d files/etc/openclash/core ] || mkdir -p files/etc/openclash/core
