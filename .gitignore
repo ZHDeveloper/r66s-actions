@@ -58,3 +58,6 @@ id_ed25519*
 # Cache directories
 .cache/
 node_modules/
+
+# WorkBuddy project data
+.workbuddy/
