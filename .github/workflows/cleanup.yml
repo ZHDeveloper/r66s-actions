@@ -1,0 +1,54 @@
+name: Cleanup Old Runs
+
+# 独立的运行记录清理工作流。
+# 设计原则（与原内置 Cleanup 步骤的区别）：
+#   1. 只在独立工作流里跑一次，而不是在 4 个矩阵 job 里各跑一次；
+#   2. 只按「时间」清理，绝不按 conclusion 删除 —— 失败的运行记录是唯一的排障证据
+#      （日志随 run 一起删除，且不可恢复）；
+#   3. 清理失败会明确打印原因，不再用 2>/dev/null 掩盖。
+
+on:
+  schedule:
+    # 每周日 20:00 UTC（周一 04:00 CST），与每日构建（20:00 UTC）错开运行日
+    - cron: 0 20 * * 0
+
+  workflow_dispatch:
+    inputs:
+      keep_days:
+        description: '保留最近多少天的运行记录'
+        required: true
+        default: '15'
+        type: choice
+        options: ['7', '15', '30', '60', '90']
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      KEEP_DAYS: ${{ inputs.keep_days || '15' }}
+
+    steps:
+    - name: Prune old workflow runs
+      run: |
+        echo "== 清理 build-openwrt.yml 的运行记录（保留最近 ${KEEP_DAYS} 天）=="
+        cutoff=$(( $(date +%s) - KEEP_DAYS * 86400 ))
+        ids=$(gh run list --workflow="build-openwrt.yml" --limit 200 \
+                --json databaseId,createdAt \
+                --jq ".[] | select((.createdAt | fromdate) < $cutoff) | .databaseId")
+
+        if [ -z "$ids" ]; then
+          echo "没有超过 ${KEEP_DAYS} 天的记录，无需清理"
+        else
+          for id in $ids; do
+            if gh run delete "$id"; then
+              echo "已删除 run $id"
+            else
+              echo "!! 删除 run $id 失败（检查仓库 Actions 默认权限是否为 Read and write）"
+            fi
+          done
+        fi
+
+        echo "== 当前保留的运行记录 =="
+        gh run list --workflow="build-openwrt.yml" --limit 20
+        echo "== 完成 =="
