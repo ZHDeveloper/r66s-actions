@@ -271,8 +271,3 @@ jobs:
         path: ${{ env.PACKAGED_OUTPUTPATH }}/*
         retention-days: 15
         if-no-files-found: error
-
-    # ── 清理 ──────────────────────────────────────────────────────
-    # 已移至独立的 cleanup.yml（每周按时间清理运行记录）：
-    # 原来在 4 个矩阵 job 里各跑一次 `gh run delete`（4 倍 API 调用），
-    # 且会按 status=failure 批量删除失败记录 —— 那正是唯一的排障证据。
