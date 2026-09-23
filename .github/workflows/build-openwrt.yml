@@ -204,7 +204,7 @@ jobs:
       if: steps.compile.outputs.status == 'success' && env.BUILD_TYPE == 'flippy'
       uses: ophub/flippy-openwrt-actions@main
       env:
-        OPENWRT_ARMSR: openwrt/bin/targets/*/*/*rootfs.tar.gz
+        OPENWRT_ARMSR: openwrt/bin/targets/*/*/*generic-rootfs.tar.gz
         PACKAGE_SOC: s905d_r66s
         KERNEL_VERSION_NAME: 6.12.y_6.18.y
         KERNEL_AUTO_LATEST: true
