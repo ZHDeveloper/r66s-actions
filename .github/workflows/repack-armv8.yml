@@ -64,7 +64,7 @@ jobs:
       env:
         OPENWRT_ARMSR: openwrt/bin/targets/*/*/*generic-rootfs.tar.gz
         PACKAGE_SOC: ${{ inputs.package_soc || 's905d_r66s' }}
-        KERNEL_REPO_URL: breakingbadboy/OpenWrt
+        KERNEL_REPO_URL: ophub/kernel
         KERNEL_VERSION_NAME: ${{ inputs.kernel_version || '6.12.y_6.18.y' }}
         KERNEL_AUTO_LATEST: true
 
