@@ -110,6 +110,8 @@ clone_all https://github.com/Openwrt-Passwall/openwrt-passwall
 clone_dir https://github.com/vernesong/OpenClash luci-app-openclash
 clone_dir https://github.com/linkease/nas-packages-luci luci-app-ddnsto
 clone_dir https://github.com/linkease/nas-packages ddnsto
+git_clone https://github.com/kenzok78/luci-theme-tomato
+clone_dir https://github.com/Wyatt323/luci-theme-mcat luci-theme-mcat
 
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
     clone_dir https://github.com/ophub/luci-app-amlogic luci-app-amlogic
@@ -134,6 +136,10 @@ for e in $destination_dir/luci-*/po feeds/luci/applications/luci-*/po; do
         ln -s zh_Hans $e/zh-cn 2>/dev/null || true
     fi
 done
+
+# 保持 Argon 为默认主题，避免额外主题覆盖默认首选主题
+sed -i '/set luci.main.mediaurlbase/d' "$destination_dir"/luci-theme-*/root/etc/uci-defaults/* 2>/dev/null || true
+sed -i '/set luci.main.mediaurlbase/d' "$destination_dir"/luci-theme-*/files/30_luci-theme-* 2>/dev/null || true
 
 # ── Download binary cores ─────────────────────────────────────────────────────
 
