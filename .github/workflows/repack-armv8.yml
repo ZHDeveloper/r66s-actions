@@ -33,11 +33,6 @@ on:
         default: s905d_r66s
         type: string
 
-# 与构建流共用同一把锁：避免打包结果与正在进行的构建同时写同一套 Releases 资产
-concurrency:
-  group: openwrt-release-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   repack:
     runs-on: ubuntu-22.04

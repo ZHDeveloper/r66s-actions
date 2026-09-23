@@ -11,14 +11,6 @@ env:
   TZ: Asia/Shanghai
   TOOLCHAIN_TAG: toolchain
 
-# 同一时间只允许一个构建在跑：手动 / Star / 每日定时三种触发重叠时排队等待，
-# 而不是并发的 4×N 个 job 一起抢 Releases 资产与工具链缓存。
-# cancel-in-progress: false —— 不打断正在进行的构建（一次编译要 1~3 小时）。
-# 该 group 与 repack-armv8.yml 共用，避免重新打包与构建同时写同一套 Releases 资产。
-concurrency:
-  group: openwrt-release-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   build:
     runs-on: ubuntu-22.04
