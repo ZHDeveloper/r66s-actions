@@ -117,10 +117,16 @@ clone_dir https://github.com/vernesong/OpenClash luci-app-openclash
 clone_dir https://github.com/linkease/nas-packages-luci luci-app-ddnsto
 clone_dir https://github.com/linkease/nas-packages ddnsto
 
-# trojan-plus：helloworld 与 passwall-packages 均不提供，feeds 自带版与 ssr-plus 不配套，直接移除。
-# （其余 feeds 自带的代理核心包 xray-core / sing-box / chinadns-ng / hysteria / shadowsocks-* /
-#   v2ray-geodata 等均已被上面的 clone_all 原地替换为第三方版本，无需再手动 rm。）
-rm -rf feeds/packages/net/trojan-plus
+# ── 「移除 feeds 自带包」说明 ──────────────────────────────────────────────────
+# 与 haiibo/build-openwrt 一致：不做任何 feeds 级 rm。feeds 自带的代理核心包
+# （xray-core / sing-box / chinadns-ng / hysteria / shadowsocks-* / v2ray-geodata 等）
+# 已被上面的 clone_all 原地替换为第三方版本，无需手动删除。
+# 原脚本的 `rm -rf feeds/packages/net/trojan-plus` 经核实是空操作：openwrt / immortalwrt /
+# coolsnowwolf 的 packages feed 均无此包（只有不带 -plus 的 trojan），helloworld 与
+# passwall-packages 也不提供，已移除。
+# 唯一需要显式摘除的是「被元包无条件依赖、config 不选也会进固件」的包
+# （haiibo 的做法是从 luci collections 的 Makefile 里 sed 掉 luci-app-attendedsysupgrade）；
+# 本项目未启用该类包，故无需处理。
 
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
     clone_dir https://github.com/ophub/luci-app-amlogic luci-app-amlogic
