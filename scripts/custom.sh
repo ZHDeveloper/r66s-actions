@@ -48,6 +48,11 @@ clone_package "https://github.com/sbwml/luci-app-mosdns" "package/mosdns" "v5"
 clone_package "https://github.com/sbwml/v2ray-geodata" "package/v2ray-geodata"
 clone_package "https://github.com/sbwml/packages_lang_golang" "feeds/packages/lang/golang"
 clone_package "https://github.com/fw876/helloworld" "package/luci-app-ssr-plus"
+# helloworld 自带一份 mosdns 核心，与 sbwml 的同名（Package/mosdns），但只带了 203/204/205 三个补丁。
+# 包扫描时同名定义会被后扫描者覆盖，实测 helloworld 这份胜出，于是 luci-app-mosdns(1.7.14) 生成的
+# log.size / stats_api / adblock_set / fallback 全部无法识别 → mosdns 启动即 FATAL，procd 判定 crash loop。
+# 删掉它，确保只用 sbwml 的补丁版（5.3.4-14，26 个补丁）。ssr-plus 本身不依赖 mosdns，删掉无副作用。
+rm -rf package/luci-app-ssr-plus/mosdns
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/luci-app-passwall"
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall" "package/passwall-luci"
 clone_package "https://github.com/Openwrt-Passwall/openwrt-passwall-packages" "package/passwall-packages"
