@@ -13,12 +13,14 @@ fi
 # LuCI 界面与核心二进制版本错配 → 服务 crash loop 的系统性问题。
 
 # 第三方包统一保存目录
+[ -f rules.mk ] && [ -d package ] || { echo "错误: 当前目录不是 OpenWrt 源码根目录 (cwd=$PWD)"; exit 1; }
 destination_dir="package/A"
 mkdir -p "$destination_dir"
 
-# 在 package/ feeds/ target/ 三棵树里查找同名目录（深度 ≤3）
+# 在 package/ feeds/ target/ 三棵树里查找同名目录（深度 ≤3，与 OpenWrt 包扫描深度一致）
+# 注意 find 在任一搜索根缺失时会返回非 0，set -e 下会中断脚本，故统一吞掉退出码
 find_dir() {
-    find $1 -maxdepth 3 -type d -name "$2" -print -quit 2>/dev/null
+    find $1 -maxdepth 3 -type d -name "$2" -print -quit 2>/dev/null || true
 }
 
 # 整仓库作为一个包目录（适合单包仓库，如 packages_lang_golang）
@@ -57,7 +59,7 @@ clone_dir() {
     local target_dir source_dir current_dir
     for target_dir in "$@"; do
         source_dir=$(find_dir "$temp_dir" "$target_dir")
-        [ -d "$source_dir" ] || source_dir=$(find "$temp_dir" -maxdepth 4 -type d -name "$target_dir" -print -quit 2>/dev/null)
+        [ -d "$source_dir" ] || source_dir=$(find "$temp_dir" -maxdepth 4 -type d -name "$target_dir" -print -quit 2>/dev/null || true)
         [ -d "$source_dir" ] || { echo "  [跳过] $target_dir 在 $repo_url 中未找到"; continue; }
         current_dir=$(find_dir "package/ feeds/ target/" "$target_dir")
         if [[ -d "$current_dir" ]]; then
@@ -99,14 +101,6 @@ clone_all() {
 }
 
 # ── Custom packages ───────────────────────────────────────────────────────────
-# 克隆顺序即优先级：后克隆者覆盖先克隆者（同名目录）。
-# 1) helloworld 的 mosdns 只带 203/204/205 三个补丁，先放；
-# 2) sbwml/luci-app-mosdns@v5 是 26 补丁版（stats_api / log.size / adblock_set /
-#    fallback / cache 预取等），后放覆盖 → 最终生效。纯上游 IrineSistiana/mosdns@v5.3.4
-#    缺这些插件，luci-app-mosdns 生成的配置会让它加载即 FATAL，必须用补丁版。
-# 3) passwall-packages 放后面，其 xray-core / sing-box / v2ray-geodata 等核心包
-#    覆盖 helloworld 同名版本，passwall 与 ssr-plus 共用同一份核心。
-# （sbwml/v2ray-geodata 不再单独克隆：其包定义 100% 被 passwall-packages 覆盖。）
 
 clone_all https://github.com/fw876/helloworld
 clone_all v5 https://github.com/sbwml/luci-app-mosdns
@@ -117,20 +111,11 @@ clone_dir https://github.com/vernesong/OpenClash luci-app-openclash
 clone_dir https://github.com/linkease/nas-packages-luci luci-app-ddnsto
 clone_dir https://github.com/linkease/nas-packages ddnsto
 
-# ── 「移除 feeds 自带包」说明 ──────────────────────────────────────────────────
-# 与 haiibo/build-openwrt 一致：不做任何 feeds 级 rm。feeds 自带的代理核心包
-# （xray-core / sing-box / chinadns-ng / hysteria / shadowsocks-* / v2ray-geodata 等）
-# 已被上面的 clone_all 原地替换为第三方版本，无需手动删除。
-# 原脚本的 `rm -rf feeds/packages/net/trojan-plus` 经核实是空操作：openwrt / immortalwrt /
-# coolsnowwolf 的 packages feed 均无此包（只有不带 -plus 的 trojan），helloworld 与
-# passwall-packages 也不提供，已移除。
-# 唯一需要显式摘除的是「被元包无条件依赖、config 不选也会进固件」的包
-# （haiibo 的做法是从 luci collections 的 Makefile 里 sed 掉 luci-app-attendedsysupgrade）；
-# 本项目未启用该类包，故无需处理。
-
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
     clone_dir https://github.com/ophub/luci-app-amlogic luci-app-amlogic
     config_file="$destination_dir/luci-app-amlogic/root/etc/config/amlogic"
+    # 该文件不存在说明 amlogic 包结构变了，宁可构建失败也不要发布指向错误 OTA 仓库的固件
+    [ -f "$config_file" ] || { echo "错误: 未找到 $config_file（luci-app-amlogic 结构可能已变化）"; exit 1; }
     sed -i "s|option amlogic_firmware_repo.*|option amlogic_firmware_repo 'https://github.com/$GITHUB_REPOSITORY'|g" "$config_file"
     sed -i "s|option amlogic_firmware_tag.*|option amlogic_firmware_tag '$RELEASE_TAG'|g" "$config_file"
 fi
