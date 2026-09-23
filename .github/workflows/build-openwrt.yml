@@ -21,7 +21,7 @@ jobs:
           - name: ImmortalWrt
             build_type: r66s
             repo_url: https://github.com/immortalwrt/immortalwrt
-            repo_branch: openwrt-24.10
+            repo_branch: openwrt-25.12
           - name: LEDE
             build_type: r66s
             repo_url: https://github.com/coolsnowwolf/lede
