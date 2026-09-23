@@ -2,28 +2,6 @@ name: Build OpenWrt for R66S
 
 on:
   workflow_dispatch:
-    inputs:
-      package_soc:
-        description: 'flippy 打包目标设备（多个用 _ 分隔，仅影响 ARMv8 打包）'
-        required: false
-        default: s905d_r66s
-        type: string
-      kernel_version:
-        description: 'flippy 打包内核版本（多个用 _ 分隔，仅影响 ARMv8 打包）'
-        required: false
-        default: 6.12.y_6.18.y
-        type: string
-      kernel_repo:
-        description: 'flippy 打包内核仓库（仅影响 ARMv8 打包）'
-        required: false
-        default: breakingbadboy/OpenWrt
-        type: choice
-        options: [breakingbadboy/OpenWrt, ophub/kernel]
-      upload_artifact:
-        description: '固件同时上传到 Actions Artifacts（保留 15 天）'
-        required: false
-        default: true
-        type: boolean
   watch:
     types: [started]
   schedule:
@@ -229,10 +207,7 @@ jobs:
         files: ${{ env.FIRMWARE }}/*
 
     - name: Upload firmware to artifact (r66s)
-      # 定时 / Star 触发时 inputs 为空 → 一律上传；手动触发可用 upload_artifact 关掉
-      if: >
-        steps.tag_r66s.outputs.status == 'success' &&
-        (github.event_name != 'workflow_dispatch' || inputs.upload_artifact)
+      if: steps.tag_r66s.outputs.status == 'success'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}-R66S-firmware-${{ github.run_number }}
@@ -247,10 +222,9 @@ jobs:
       uses: ophub/flippy-openwrt-actions@main
       env:
         OPENWRT_ARMSR: openwrt/bin/targets/*/*/*generic-rootfs.tar.gz
-        # 手动触发时可用上面的 dispatch 输入项覆盖；定时 / Star 触发时 inputs 为空，回退到默认值
-        PACKAGE_SOC: ${{ inputs.package_soc || 's905d_r66s' }}
-        KERNEL_REPO_URL: ${{ inputs.kernel_repo || 'breakingbadboy/OpenWrt' }}
-        KERNEL_VERSION_NAME: ${{ inputs.kernel_version || '6.12.y_6.18.y' }}
+        PACKAGE_SOC: s905d_r66s
+        KERNEL_REPO_URL: breakingbadboy/OpenWrt
+        KERNEL_VERSION_NAME: 6.12.y_6.18.y
         KERNEL_AUTO_LATEST: true
 
     - name: Rename Firmware (flippy)
@@ -290,10 +264,7 @@ jobs:
         bodyFile: release.txt
 
     - name: Upload firmware to artifact (flippy)
-      # 定时 / Star 触发时 inputs 为空 → 一律上传；手动触发可用 upload_artifact 关掉
-      if: >
-        steps.tag_flippy.outputs.status == 'success' &&
-        (github.event_name != 'workflow_dispatch' || inputs.upload_artifact)
+      if: steps.tag_flippy.outputs.status == 'success'
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.name }}-ARMv8-firmware-${{ github.run_number }}

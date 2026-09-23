@@ -4,8 +4,9 @@ name: Repack ARMv8 Firmware
 # 从 Releases 下载上一次构建留下的 rootfs.tar.gz，直接交给 ophub 打包流程出包，
 # 只做打包不编译，通常 10 分钟以内完成。
 #
-# 适用场景：只想换内核版本 / 换内核仓库 / 换目标设备型号重新出包，
+# 适用场景：只想换内核版本或换目标设备型号重新出包，
 # 而不想重新等 1~3 小时的完整编译。
+# 内核仓库、auto_latest 等其余打包参数与构建流一致，直接写死。
 #
 # 注意：打包结果会覆盖 ARMv8-<源码> 这个 tag 下的资产（与构建流行为一致），
 # 并继续保留其中的 rootfs.tar.gz，所以可以反复重新打包。
@@ -20,13 +21,6 @@ on:
         type: choice
         options: [ImmortalWrt, LEDE]
 
-      kernel_repo:
-        description: '内核存储库'
-        required: false
-        default: breakingbadboy/OpenWrt
-        type: choice
-        options: [breakingbadboy/OpenWrt, ophub/kernel]
-
       kernel_version:
         description: '内核版本（多个用 _ 分隔）'
         required: false
@@ -38,18 +32,6 @@ on:
         required: false
         default: s905d_r66s
         type: string
-
-      auto_kernel:
-        description: '自动使用最新内核'
-        required: false
-        default: true
-        type: boolean
-
-      upload_release:
-        description: '打包结果上传到 Releases'
-        required: false
-        default: true
-        type: boolean
 
 # 与构建流共用同一把锁：避免打包结果与正在进行的构建同时写同一套 Releases 资产
 concurrency:
@@ -87,9 +69,9 @@ jobs:
       env:
         OPENWRT_ARMSR: openwrt/bin/targets/*/*/*generic-rootfs.tar.gz
         PACKAGE_SOC: ${{ inputs.package_soc || 's905d_r66s' }}
-        KERNEL_REPO_URL: ${{ inputs.kernel_repo || 'breakingbadboy/OpenWrt' }}
+        KERNEL_REPO_URL: breakingbadboy/OpenWrt
         KERNEL_VERSION_NAME: ${{ inputs.kernel_version || '6.12.y_6.18.y' }}
-        KERNEL_AUTO_LATEST: ${{ inputs.auto_kernel }}
+        KERNEL_AUTO_LATEST: true
 
     - name: Rename Firmware
       id: rename
@@ -118,7 +100,7 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware to release
-      if: steps.body.outputs.status == 'success' && inputs.upload_release
+      if: steps.body.outputs.status == 'success'
       uses: ncipollo/release-action@main
       with:
         name: ${{ env.RELEASE_TAG }}
