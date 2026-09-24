@@ -24,8 +24,11 @@ on:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
       KEEP_DAYS: ${{ inputs.keep_days || '15' }}
 
     steps:
