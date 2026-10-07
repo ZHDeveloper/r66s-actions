@@ -111,6 +111,8 @@ jobs:
       run: cd openwrt && ./scripts/feeds install -a
 
     - name: Cache Toolchain
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         chmod +x scripts/*.sh
         $GITHUB_WORKSPACE/scripts/toolchain.sh
