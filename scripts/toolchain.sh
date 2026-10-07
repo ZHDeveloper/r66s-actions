@@ -73,18 +73,18 @@ rm -f ./*.tzst
 
 # 1. 优先在本仓库指定 Tag 查找对应工具链
 cache_url=$(curl -sL "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$TOOLCHAIN_TAG" 2>/dev/null \
-    | awk -F '"' '/download_url/{print $4}' | grep "$CACHE_NAME" | head -1)
+    | awk -F '"' '/download_url/{print $4}' | grep -i "$CACHE_NAME" | head -1)
 
 # 若指定 Tag 未查到，查询本仓库的所有 Releases
 if [[ -z "$cache_url" ]]; then
     cache_url=$(curl -sL "https://api.github.com/repos/$GITHUB_REPOSITORY/releases" 2>/dev/null \
-        | awk -F '"' '/download_url/{print $4}' | grep "$CACHE_NAME" | head -1)
+        | awk -F '"' '/download_url/{print $4}' | grep -i "$CACHE_NAME" | head -1)
 fi
 
 # 兼容旧命名查询
 if [[ -z "$cache_url" ]]; then
     cache_url=$(curl -sL "https://api.github.com/repos/$GITHUB_REPOSITORY/releases" 2>/dev/null \
-        | awk -F '"' '/download_url/{print $4}' | grep "$FIRMWARE_TYPE-toolchain-cache-$TOOLS_HASH" | head -1)
+        | awk -F '"' '/download_url/{print $4}' | grep -i "$FIRMWARE_TYPE-toolchain-cache-$TOOLS_HASH" | head -1)
 fi
 
 # 2. 若本仓库无缓存，参考 haiibo，尝试从 haiibo/toolchain-cache 公共源获取加速
@@ -92,7 +92,7 @@ from_fallback=false
 if [[ -z "$cache_url" ]]; then
     haiibo_pattern="${DEVICE_TARGET}-cache-${TOOLS_HASH}"
     cache_url=$(curl -sL "https://api.github.com/repos/haiibo/toolchain-cache/releases" 2>/dev/null \
-        | awk -F '"' '/download_url/{print $4}' | grep -E "$haiibo_pattern|$CACHE_NAME" | head -1)
+        | awk -F '"' '/download_url/{print $4}' | grep -iE "$CACHE_NAME|$haiibo_pattern" | head -1)
     if [[ -n "$cache_url" ]]; then
         from_fallback=true
         echo "🌐 命中 haiibo/toolchain-cache 公共缓存源"
@@ -114,7 +114,23 @@ if [[ -n "$cache_url" ]]; then
             if tar -I unzstd -xf ./*.tzst 2>/dev/null || tar -xf ./*.tzst 2>/dev/null; then
                 if [ -d staging_dir ]; then
                     cache_ok=true
-                    if $from_fallback; then
+
+                    # 校验解压出来的 host 二进制是否与宿主系统的 glibc 兼容
+                    if [ -d staging_dir/host/bin ]; then
+                        for test_bin in staging_dir/host/bin/*; do
+                            if [ -f "$test_bin" ] && [ -x "$test_bin" ]; then
+                                err_msg=$("$test_bin" --version 2>&1 || true)
+                                if echo "$err_msg" | grep -qi "version \`GLIBC_.*' not found"; then
+                                    echo "❌ 缓存中的 $(basename "$test_bin") 与宿主系统 glibc 不兼容:"
+                                    echo "   $err_msg"
+                                    cache_ok=false
+                                    break
+                                fi
+                            fi
+                        done
+                    fi
+
+                    if $cache_ok && $from_fallback; then
                         cp ./*.tzst "$GITHUB_WORKSPACE/output/$CACHE_NAME.tzst"
                         echo "OUTPUT_RELEASE=true" >> "$GITHUB_ENV"
                     fi
@@ -134,5 +150,5 @@ else
     # 未命中或包损坏：清理 staging_dir 避免残缺文件污染后续编译
     rm -rf staging_dir ./*.tzst
     echo "REBUILD_TOOLCHAIN=true" >> "$GITHUB_ENV"
-    echo "⚠️ 工具链缓存不可用（未命中或校验失败），本次将重新编译工具链"
+    echo "⚠️ 工具链缓存不可用（未命中、校验失败或 glibc 不兼容），本次将重新编译工具链"
 fi
