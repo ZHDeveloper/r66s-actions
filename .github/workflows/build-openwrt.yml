@@ -141,7 +141,7 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ env.TOOLCHAIN_TAG }}
-        assets: '${{ env.FIRMWARE_TYPE }}-*'
+        assets: '${{ env.CACHE_PREFIX }}*'
         fail-if-no-assets: false
         fail-if-no-release: false
 

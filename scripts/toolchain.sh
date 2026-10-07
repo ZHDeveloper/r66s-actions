@@ -37,6 +37,10 @@ TOOLS_HASH=$(git log -1 --format="%h" tools toolchain 2>/dev/null || echo "lates
 CACHE_NAME="${FIRMWARE_TYPE}-${LITE_BRANCH}-${DEVICE_TARGET}-cache-${TOOLS_HASH}"
 echo "CACHE_NAME=$CACHE_NAME" >> "$GITHUB_ENV"
 
+# 缓存前缀（本源-分支-架构），用于只清理同一目标的旧缓存，避免误删同源其它目标的缓存
+CACHE_PREFIX="${FIRMWARE_TYPE}-${LITE_BRANCH}-${DEVICE_TARGET}-cache-"
+echo "CACHE_PREFIX=$CACHE_PREFIX" >> "$GITHUB_ENV"
+
 # 打包 Toolchain（参考 haiibo/build-openwrt 标准）
 if [[ "${REBUILD_TOOLCHAIN:-false}" = 'true' ]]; then
     echo "📦 开始打包工具链缓存: $CACHE_NAME"
