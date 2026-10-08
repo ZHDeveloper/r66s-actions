@@ -111,6 +111,11 @@ clone_dir https://github.com/vernesong/OpenClash luci-app-openclash
 clone_dir https://github.com/linkease/nas-packages-luci luci-app-ddnsto
 clone_dir https://github.com/linkease/nas-packages ddnsto
 
+# Nikki (Transparent Proxy with Mihomo，参考 haiibo/build-openwrt，仅限 ImmortalWrt)
+if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]] || [ -z "$FIRMWARE_TYPE" ]; then
+    clone_all https://github.com/nikkinikki-org/OpenWrt-nikki
+fi
+
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
     clone_dir https://github.com/ophub/luci-app-amlogic luci-app-amlogic
     config_file="$destination_dir/luci-app-amlogic/root/etc/config/amlogic"

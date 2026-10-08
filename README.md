@@ -15,7 +15,7 @@
 
 | 分类 | 插件 |
 |------|------|
-| 网络代理 | [OpenClash](https://github.com/vernesong/OpenClash)、[Passwall](https://github.com/Openwrt-Passwall/openwrt-passwall)、[SSR Plus+](https://github.com/fw876/helloworld) |
+| 网络代理 | [OpenClash](https://github.com/vernesong/OpenClash)、[Passwall](https://github.com/Openwrt-Passwall/openwrt-passwall)、[SSR Plus+](https://github.com/fw876/helloworld)、[Nikki](https://github.com/nikkinikki-org/OpenWrt-nikki)（仅限 ImmortalWrt） |
 | DNS 服务 | [MosDNS](https://github.com/sbwml/luci-app-mosdns) |
 | 内网穿透 | [DDNSTO](https://github.com/linkease/nas-packages) |
 | 系统工具 | TTYD 终端 |
