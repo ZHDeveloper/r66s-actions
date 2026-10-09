@@ -114,6 +114,8 @@ clone_dir https://github.com/linkease/nas-packages ddnsto
 # Nikki (Transparent Proxy with Mihomo，参考 haiibo/build-openwrt，仅限 ImmortalWrt)
 if [[ "$FIRMWARE_TYPE" == "ImmortalWrt" ]] || [ -z "$FIRMWARE_TYPE" ]; then
     clone_all https://github.com/nikkinikki-org/OpenWrt-nikki
+    # 包已 clone 到位，此处同步开启 LuCI 插件，确保 r66s 与 flippy 两条产线都会带上 Nikki
+    echo "CONFIG_PACKAGE_luci-app-nikki=y" >> .config
 fi
 
 if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
