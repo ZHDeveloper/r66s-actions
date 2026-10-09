@@ -125,6 +125,10 @@ if [[ "$CONFIG_FILE" == *"flippy"* ]]; then
     [ -f "$config_file" ] || { echo "错误: 未找到 $config_file（luci-app-amlogic 结构可能已变化）"; exit 1; }
     sed -i "s|option amlogic_firmware_repo.*|option amlogic_firmware_repo 'https://github.com/$GITHUB_REPOSITORY'|g" "$config_file"
     sed -i "s|option amlogic_firmware_tag.*|option amlogic_firmware_tag '$RELEASE_TAG'|g" "$config_file"
+
+    # 修复 openwrt-update-* 脚本在 BusyBox umount 下传设备名报 Invalid argument 的问题
+    find "$destination_dir/luci-app-amlogic" -type f -name "openwrt-update-*" | xargs -r sed -i \
+        "s|awk '\$3 !~ /\^\$/ {print \$2}'|awk '\$3 !~ /\^\$/ {print \$3}'|g"
 fi
 
 # 修复第三方包 Makefile 的相对路径引用（../../lang / ../../luci.mk 在 package/A 深度下失效）
