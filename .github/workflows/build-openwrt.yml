@@ -22,29 +22,28 @@ jobs:
             build_type: r66s
             repo_url: https://github.com/immortalwrt/immortalwrt
             repo_branch: openwrt-25.12
+            config_file: configs/r66s-immortalwrt.config
           - name: LEDE
             build_type: r66s
             repo_url: https://github.com/coolsnowwolf/lede
             repo_branch: master
+            config_file: configs/r66s-lede.config
           - name: ImmortalWrt
             build_type: flippy
             repo_url: https://github.com/immortalwrt/immortalwrt
             repo_branch: openwrt-25.12
+            config_file: configs/r66s-flippy-immortalwrt.config
           - name: LEDE
             build_type: flippy
             repo_url: https://github.com/coolsnowwolf/lede
             repo_branch: master
+            config_file: configs/r66s-flippy.config
 
     env:
       BUILD_TYPE: ${{ matrix.build_type }}
       FIRMWARE_TYPE: ${{ matrix.name }}
       EXTRA_CONFIG: configs/extra.config
-      CONFIG_FILE: >-
-        ${{
-          matrix.build_type == 'flippy' && 'configs/r66s-flippy.config' ||
-          matrix.name == 'LEDE' && 'configs/r66s-lede.config' ||
-          'configs/r66s-immortalwrt.config'
-        }}
+      CONFIG_FILE: ${{ matrix.config_file }}
       RELEASE_TAG: >-
         ${{
           matrix.build_type == 'flippy' && format('ARMv8-{0}', matrix.name) ||
