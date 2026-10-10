@@ -58,6 +58,18 @@ jobs:
         echo "== 用于打包的 rootfs =="
         ls -lh openwrt/bin/targets/armsr/armv8/
 
+    - name: Prepare openwrt_packit and patch update scripts
+      run: |
+        # flippy 打包使用 openwrt_packit/files/ 下的脚本，先预克隆并打补丁
+        # 修复 BusyBox umount 下传设备名报 Invalid argument 的问题
+        sudo mkdir -p /opt
+        sudo chown -R $USER:$USER /opt
+        git clone --depth=1 https://github.com/unifreq/openwrt_packit /opt/openwrt_packit
+        find /opt/openwrt_packit/files -type f -name "openwrt-update-*" | xargs -r sed -i \
+          "s|awk '\$3 !~ /\^\$/ {print \$2}'|awk '\$3 !~ /\^\$/ {print \$3}'|g"
+        echo "== 验证 openwrt-update-rockchip 补丁是否成功打入 =="
+        grep -n 'awk.*print \$3' /opt/openwrt_packit/files/openwrt-update-rockchip
+
     - name: Packaging OpenWrt (flippy)
       id: package_flippy
       uses: ophub/flippy-openwrt-actions@main
